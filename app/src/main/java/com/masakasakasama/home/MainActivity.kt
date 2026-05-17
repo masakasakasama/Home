@@ -8,10 +8,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -19,9 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +54,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.lifecycleScope
 import com.masakasakasama.home.BuildConfig
@@ -161,47 +158,55 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars)
-                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 18.dp)
         ) {
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = "Home",
                 style = TextStyle(
                     brush = Brush.linearGradient(
-                        listOf(Color(0xFF8AB4F8), Color(0xFFC58AF9))
+                        listOf(Color(0xFF7AA8FF), Color(0xFFC58AF9), Color(0xFF6FE0C8))
                     )
                 ),
-                fontSize = 40.sp,
+                fontSize = 46.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
+                modifier = Modifier.padding(bottom = 10.dp)
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0x14FFFFFF))
+                    .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(50))
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(7.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
                         .background(
-                            if (update != null) Color(0xFF64B5F6)
-                            else Color(0xFF4CAF50)
+                            if (update != null) Color(0xFF5AA9FF)
+                            else Color(0xFF3DDC84)
                         )
                 )
-                Spacer(Modifier.size(7.dp))
+                Spacer(Modifier.size(8.dp))
                 Text(
                     text = if (update != null)
-                        "v${BuildConfig.VERSION_NAME} ・ 更新あり (${update.tag}) → 自動更新します"
+                        "v${BuildConfig.VERSION_NAME}  ・  更新あり (${update.tag})"
                     else
-                        "v${BuildConfig.VERSION_NAME} ・ 最新版です",
-                    color = if (update != null) Color(0xFF90CAF9) else Color(0xFF9AA7B2),
-                    fontSize = 13.sp,
+                        "v${BuildConfig.VERSION_NAME}  ・  最新版",
+                    color = if (update != null) Color(0xFFAFCBFF) else Color(0xFFA8B3C2),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
                 )
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(22.dp))
 
             if (update != null) {
                 if (ApkInstaller.canInstall(context)) {
-                    // Download is automatic; show progress text only.
                     Banner(updateStatus ?: "新しいバージョン (${update.tag}) を準備中…")
                 } else {
-                    // Need the "install unknown apps" permission first.
                     UpdateBanner(
                         tag = update.tag,
                         onUpdate = {
@@ -209,19 +214,27 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
             }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(bottom = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                items(AppCatalog.apps) { app ->
-                    AppTile(app) { openApp(app) }
+            val apps = AppCatalog.apps
+            val hero = apps.first()
+            HeroTile(
+                app = hero,
+                subtitle = "タップして株価ウィジェットを開く",
+            ) { openApp(hero) }
+            Spacer(Modifier.height(14.dp))
+
+            apps.drop(1).chunked(2).forEach { rowApps ->
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    rowApps.forEach { app ->
+                        GlassTile(app, Modifier.weight(1f)) { openApp(app) }
+                    }
+                    if (rowApps.size == 1) Spacer(Modifier.weight(1f))
                 }
+                Spacer(Modifier.height(14.dp))
             }
+            Spacer(Modifier.height(8.dp))
         }
     }
 
@@ -271,49 +284,129 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun AppTile(app: AppEntry, onClick: () -> Unit) {
-        val shape = RoundedCornerShape(26.dp)
+    private fun HeroTile(
+        app: AppEntry,
+        subtitle: String,
+        onClick: () -> Unit,
+    ) {
+        val shape = RoundedCornerShape(28.dp)
         val interaction = remember { MutableInteractionSource() }
         val pressed by interaction.collectIsPressedAsState()
         val scale by animateFloatAsState(
-            targetValue = if (pressed) 0.95f else 1f,
+            targetValue = if (pressed) 0.975f else 1f,
+            animationSpec = spring(),
+            label = "heroScale",
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .scale(scale)
+                .shadow(18.dp, shape, clip = false)
+                .clip(shape)
+                .background(Color(0xFF0F1310))
+                .background(
+                    Brush.linearGradient(
+                        listOf(app.color.copy(alpha = 0.40f), Color.Transparent)
+                    )
+                )
+                .border(1.dp, app.color.copy(alpha = 0.50f), shape)
+                .clickable(
+                    interactionSource = interaction,
+                    indication = LocalIndication.current,
+                ) { onClick() }
+                .padding(22.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(app.color.copy(alpha = 0.26f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = app.emoji, fontSize = 34.sp)
+            }
+            Spacer(Modifier.size(18.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = app.title,
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    text = subtitle,
+                    color = Color(0xFFB6C2B8),
+                    fontSize = 13.sp,
+                )
+            }
+            Text(
+                text = "›",
+                color = app.color.copy(alpha = 0.75f),
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+
+    @Composable
+    private fun GlassTile(
+        app: AppEntry,
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit,
+    ) {
+        val shape = RoundedCornerShape(24.dp)
+        val interaction = remember { MutableInteractionSource() }
+        val pressed by interaction.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (pressed) 0.955f else 1f,
             animationSpec = spring(),
             label = "tileScale",
         )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
+        Box(
+            modifier = modifier
                 .aspectRatio(1f)
                 .scale(scale)
-                .shadow(10.dp, shape, clip = false)
+                .shadow(12.dp, shape, clip = false)
                 .clip(shape)
+                .background(Color(0xFF12151D))
                 .background(
-                    Brush.verticalGradient(
-                        listOf(app.color, lerp(app.color, Color.Black, 0.45f))
+                    Brush.linearGradient(
+                        listOf(app.color.copy(alpha = 0.30f), Color.Transparent)
                     )
                 )
-                .border(1.dp, Color(0x1FFFFFFF), shape)
+                .border(1.dp, app.color.copy(alpha = 0.38f), shape)
                 .clickable(
                     interactionSource = interaction,
                     indication = LocalIndication.current,
                 ) { onClick() }
                 .padding(18.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x26FFFFFF)),
+                    .align(Alignment.TopStart)
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(app.color.copy(alpha = 0.22f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = app.emoji, fontSize = 30.sp)
+                Text(text = app.emoji, fontSize = 26.sp)
             }
+            Text(
+                text = "›",
+                color = app.color.copy(alpha = 0.55f),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
             Text(
                 text = app.title,
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.BottomStart),
             )
         }
     }
