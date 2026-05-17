@@ -28,11 +28,11 @@ object AppCatalog {
         Target.Web("https://masakasakasama.github.io/$repo/")
 
     val apps = listOf(
+        AppEntry("株", "📈", Color(0xFF43A047), Target.InstalledApp("com.example.stockwidget")),
+        AppEntry("タスク管理", "✅", Color(0xFF00897B), pages("Task_management")),
         AppEntry("フィットネス", "💪", Color(0xFFE53935), pages("Fitness")),
         AppEntry("英語ニュース", "📰", Color(0xFF1E88E5), Target.Web("https://english-news-app-eight.vercel.app")),
-        AppEntry("株", "📈", Color(0xFF43A047), Target.InstalledApp("com.example.stockwidget")),
         AppEntry("語学学習", "🗣️", Color(0xFF8E24AA), pages("Language_learning")),
         AppEntry("割り勘", "💴", Color(0xFFF4511E), pages("warikan")),
-        AppEntry("タスク管理", "✅", Color(0xFF00897B), pages("Task_management")),
     )
 }
