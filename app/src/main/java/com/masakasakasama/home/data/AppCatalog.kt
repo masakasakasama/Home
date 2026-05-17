@@ -9,13 +9,6 @@ sealed interface Target {
 
     /** Launch an already-installed app by its applicationId. */
     data class InstalledApp(val packageName: String) : Target
-
-    /**
-     * Launch an installed app found by its visible name. Used for
-     * side-loaded apps whose package id is unknown; [contains] is matched
-     * case-insensitively against each launchable app's label.
-     */
-    data class InstalledAppByName(val contains: String) : Target
 }
 
 data class AppEntry(
@@ -37,7 +30,7 @@ object AppCatalog {
     val apps = listOf(
         AppEntry("フィットネス", "💪", Color(0xFFE53935), pages("Fitness")),
         AppEntry("英語ニュース", "📰", Color(0xFF1E88E5), Target.Web("https://english-news-app-eight.vercel.app")),
-        AppEntry("株", "📈", Color(0xFF43A047), Target.InstalledAppByName("株価ウィジェット")),
+        AppEntry("株", "📈", Color(0xFF43A047), Target.InstalledApp("com.example.stockwidget")),
         AppEntry("語学学習", "🗣️", Color(0xFF8E24AA), pages("Language_learning")),
         AppEntry("割り勘", "💴", Color(0xFFF4511E), pages("warikan")),
         AppEntry("タスク管理", "✅", Color(0xFF00897B), pages("Task_management")),

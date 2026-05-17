@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import com.masakasakasama.home.BuildConfig
 import com.masakasakasama.home.data.AppCatalog
 import com.masakasakasama.home.data.AppEntry
 import com.masakasakasama.home.data.Target
@@ -126,22 +127,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                is Target.InstalledAppByName -> {
-                    val pm = context.packageManager
-                    val main = Intent(Intent.ACTION_MAIN)
-                        .addCategory(Intent.CATEGORY_LAUNCHER)
-                    val match = pm.queryIntentActivities(main, 0).firstOrNull {
-                        it.loadLabel(pm).toString()
-                            .contains(t.contains, ignoreCase = true)
-                    }
-                    val launch = match?.activityInfo?.packageName
-                        ?.let { pm.getLaunchIntentForPackage(it) }
-                    if (launch != null) {
-                        context.startActivity(launch)
-                    } else {
-                        toast("${app.title} がインストールされていません")
-                    }
-                }
             }
         }
 
@@ -151,7 +136,16 @@ class MainActivity : ComponentActivity() {
                 color = Color.White,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                modifier = Modifier.padding(top = 24.dp, bottom = 2.dp)
+            )
+            Text(
+                text = if (update != null)
+                    "バージョン ${BuildConfig.VERSION_NAME} ・ 更新あり (${update.tag}) → 自動更新します"
+                else
+                    "バージョン ${BuildConfig.VERSION_NAME} ・ 最新版です",
+                color = if (update != null) Color(0xFF90CAF9) else Color(0xFF90A4AE),
+                fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             if (update != null) {
