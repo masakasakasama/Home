@@ -87,6 +87,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Re-check on every foreground, not just the first cold start.
         checkSelfUpdate()
     }
 
