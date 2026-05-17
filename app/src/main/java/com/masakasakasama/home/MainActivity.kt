@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,9 +83,29 @@ class MainActivity : ComponentActivity() {
     private fun HomeScreen() {
         val context = LocalContext.current
         val update = selfUpdate
+        var updateStatus by remember { mutableStateOf<String?>(null) }
+        var downloadStarted by remember { mutableStateOf(false) }
 
         fun toast(msg: String) =
             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+
+        // Auto-download the update on launch. The OS install confirmation
+        // still appears at the end (unavoidable for side-loaded apps).
+        LaunchedEffect(update?.tag) {
+            if (update == null || downloadStarted) return@LaunchedEffect
+            if (!ApkInstaller.canInstall(context)) return@LaunchedEffect
+            downloadStarted = true
+            updateStatus = "新しいバージョン (${update.tag}) をダウンロード中…"
+            ApkInstaller.downloadAndInstall(
+                context = context,
+                apkUrl = update.apkUrl,
+                tag = "self-${update.tag}",
+            ) { err ->
+                updateStatus = null
+                downloadStarted = false
+                toast(err)
+            }
+        }
 
         fun openApp(app: AppEntry) {
             when (val t = app.target) {
@@ -117,21 +138,18 @@ class MainActivity : ComponentActivity() {
             )
 
             if (update != null) {
-                UpdateBanner(
-                    tag = update.tag,
-                    onUpdate = {
-                        if (!ApkInstaller.canInstall(context)) {
-                            toast("「不明なアプリのインストール」を許可してください")
+                if (ApkInstaller.canInstall(context)) {
+                    // Download is automatic; show progress text only.
+                    Banner(updateStatus ?: "新しいバージョン (${update.tag}) を準備中…")
+                } else {
+                    // Need the "install unknown apps" permission first.
+                    UpdateBanner(
+                        tag = update.tag,
+                        onUpdate = {
                             ApkInstaller.requestInstallPermission(context)
-                            return@UpdateBanner
                         }
-                        ApkInstaller.downloadAndInstall(
-                            context = context,
-                            apkUrl = update.apkUrl,
-                            tag = "self-${update.tag}",
-                        ) { err -> toast(err) }
-                    }
-                )
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
             }
 
@@ -149,6 +167,20 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
+    private fun Banner(text: String) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF1565C0))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = text, color = Color.White, fontSize = 15.sp)
+        }
+    }
+
+    @Composable
     private fun UpdateBanner(tag: String, onUpdate: () -> Unit) {
         Row(
             modifier = Modifier
@@ -160,12 +192,12 @@ class MainActivity : ComponentActivity() {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "新しいバージョン ($tag) があります",
+                text = "新しいバージョン ($tag): インストール許可が必要です",
                 color = Color.White,
                 fontSize = 15.sp,
                 modifier = Modifier.weight(1f)
             )
-            Button(onClick = onUpdate) { Text("更新") }
+            Button(onClick = onUpdate) { Text("許可") }
         }
     }
 
