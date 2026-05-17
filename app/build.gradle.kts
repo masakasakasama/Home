@@ -22,13 +22,14 @@ android {
 
     signingConfigs {
         create("release") {
-            // Keystore is committed on purpose: this is a personal
-            // side-loaded launcher, so a stable signature (same across CI
-            // builds) is what lets the app update itself in place.
-            storeFile = file("../home-release.jks")
-            storePassword = "homestore"
-            keyAlias = "home"
-            keyPassword = "homestore"
+            // Signed with the Stock widget's keystore (same cert) so the
+            // signature-protected READ_WATCHLIST permission is granted and
+            // Home can read its watchlist provider. Committed on purpose:
+            // personal side-loaded app needing a stable signature.
+            storeFile = file("../shared-debug.jks")
+            storePassword = "stockwidget"
+            keyAlias = "stockwidget"
+            keyPassword = "stockwidget"
             // Enable every signature scheme so even picky side-load
             // installers (some Xiaomi/MIUI ones) accept the APK.
             enableV1Signing = true
