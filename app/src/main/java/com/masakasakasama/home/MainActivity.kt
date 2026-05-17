@@ -61,12 +61,15 @@ import com.masakasakasama.home.github.ApkInstaller
 import com.masakasakasama.home.github.GitHubReleaseClient
 import com.masakasakasama.home.github.ReleaseInfo
 import com.masakasakasama.home.stock.StockLive
+import com.masakasakasama.home.tiles.FitnessTip
+import com.masakasakasama.home.tiles.NewsLive
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private var selfUpdate by mutableStateOf<ReleaseInfo?>(null)
     private var stockSummary by mutableStateOf<String?>(null)
+    private var newsHeadline by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,12 +99,19 @@ class MainActivity : ComponentActivity() {
         // Re-check on every foreground, not just the first cold start.
         checkSelfUpdate()
         refreshStocks()
+        refreshNews()
     }
 
     private fun refreshStocks() {
         lifecycleScope.launch {
             val q = StockLive.quotes(applicationContext)
             if (q.isNotEmpty()) stockSummary = StockLive.summarize(q)
+        }
+    }
+
+    private fun refreshNews() {
+        lifecycleScope.launch {
+            newsHeadline = NewsLive.topHeadline()
         }
     }
 
@@ -223,7 +233,12 @@ class MainActivity : ComponentActivity() {
                     subtitle = when (val t = app.target) {
                         is Target.InstalledApp ->
                             stockSummary ?: "株価ウィジェットを開く"
-                        is Target.Web -> Uri.parse(t.url).host ?: "ウェブを開く"
+                        is Target.Web -> when {
+                            t.url.contains("english-news") ->
+                                newsHeadline ?: (Uri.parse(t.url).host ?: "ウェブを開く")
+                            t.url.contains("/Fitness") -> FitnessTip.next()
+                            else -> Uri.parse(t.url).host ?: "ウェブを開く"
+                        }
                     },
                 ) { openApp(app) }
                 Spacer(Modifier.height(12.dp))
