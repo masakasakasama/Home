@@ -2,33 +2,37 @@ package com.masakasakasama.home.data
 
 import androidx.compose.ui.graphics.Color
 
-/**
- * One launchable app in the Home grid.
- *
- * @param packageName Android applicationId of the target app. When the app is
- *   installed Home launches it directly. Leave null until you know it; the
- *   tile then always goes through the install/update flow instead.
- */
+/** Where a tile sends the user when tapped. */
+sealed interface Target {
+    /** Open this URL in the browser (GitHub Pages web apps). */
+    data class Web(val url: String) : Target
+
+    /** Launch an already-installed app by its applicationId. */
+    data class InstalledApp(val packageName: String) : Target
+}
+
 data class AppEntry(
     val title: String,
-    val owner: String,
-    val repo: String,
     val emoji: String,
     val color: Color,
-    val packageName: String? = null,
+    val target: Target,
 )
 
 object AppCatalog {
 
+    /** Home updates itself from this repo's GitHub Releases. */
     const val SELF_OWNER = "masakasakasama"
     const val SELF_REPO = "Home"
 
+    private fun pages(repo: String) =
+        Target.Web("https://masakasakasama.github.io/$repo/")
+
     val apps = listOf(
-        AppEntry("フィットネス", "masakasakasama", "Fitness", "💪", Color(0xFFE53935)),
-        AppEntry("英語ニュース", "masakasakasama", "english-news-app", "📰", Color(0xFF1E88E5)),
-        AppEntry("株", "masakasakasama", "Stock", "📈", Color(0xFF43A047)),
-        AppEntry("語学学習", "masakasakasama", "Language_learning", "🗣️", Color(0xFF8E24AA)),
-        AppEntry("割り勘", "masakasakasama", "warikan", "💴", Color(0xFFF4511E)),
-        AppEntry("タスク管理", "masakasakasama", "Task_management", "✅", Color(0xFF00897B)),
+        AppEntry("フィットネス", "💪", Color(0xFFE53935), pages("Fitness")),
+        AppEntry("英語ニュース", "📰", Color(0xFF1E88E5), pages("english-news-app")),
+        AppEntry("株", "📈", Color(0xFF43A047), Target.InstalledApp("com.masakasakasama.stock")),
+        AppEntry("語学学習", "🗣️", Color(0xFF8E24AA), pages("Language_learning")),
+        AppEntry("割り勘", "💴", Color(0xFFF4511E), pages("warikan")),
+        AppEntry("タスク管理", "✅", Color(0xFF00897B), pages("Task_management")),
     )
 }

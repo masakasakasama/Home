@@ -1,5 +1,7 @@
 package com.masakasakasama.home
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -30,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.masakasakasama.home.data.AppCatalog
 import com.masakasakasama.home.data.AppEntry
+import com.masakasakasama.home.data.Target
 import com.masakasakasama.home.github.ApkInstaller
 import com.masakasakasama.home.github.GitHubReleaseClient
 import com.masakasakasama.home.github.ReleaseInfo
@@ -51,22 +53,19 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    private var selfUpdate by mutableStateOf<ReleaseInfo?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.Black
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
                     HomeScreen()
                 }
             }
         }
         checkSelfUpdate()
     }
-
-    private var selfUpdate by mutableStateOf<ReleaseInfo?>(null)
 
     private fun checkSelfUpdate() {
         lifecycleScope.launch {
@@ -82,49 +81,30 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun HomeScreen() {
         val context = LocalContext.current
-        val scope = rememberCoroutineScope()
-        var status by remember { mutableStateOf<String?>(null) }
         val update = selfUpdate
 
         fun toast(msg: String) =
             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
 
-        fun installFrom(owner: String, repo: String) {
-            if (!ApkInstaller.canInstall(context)) {
-                toast("「不明なアプリのインストール」を許可してください")
-                ApkInstaller.requestInstallPermission(context)
-                return
-            }
-            status = "$repo の最新版を確認中…"
-            scope.launch {
-                val release = GitHubReleaseClient.latestRelease(owner, repo)
-                if (release == null) {
-                    status = null
-                    toast("$repo のリリースが見つかりません")
-                    return@launch
-                }
-                status = "$repo をダウンロード中…"
-                ApkInstaller.downloadAndInstall(
-                    context = context,
-                    apkUrl = release.apkUrl,
-                    tag = "$repo-${release.tag}",
-                ) { err ->
-                    status = null
-                    toast(err)
-                }
-            }
-        }
-
         fun openApp(app: AppEntry) {
-            val pkg = app.packageName
-            if (pkg != null) {
-                val launch = context.packageManager.getLaunchIntentForPackage(pkg)
-                if (launch != null) {
-                    context.startActivity(launch)
-                    return
+            when (val t = app.target) {
+                is Target.Web -> {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(t.url))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { context.startActivity(intent) }
+                        .onFailure { toast("ブラウザを開けませんでした") }
+                }
+
+                is Target.InstalledApp -> {
+                    val launch = context.packageManager
+                        .getLaunchIntentForPackage(t.packageName)
+                    if (launch != null) {
+                        context.startActivity(launch)
+                    } else {
+                        toast("${app.title} がインストールされていません")
+                    }
                 }
             }
-            installFrom(app.owner, app.repo)
         }
 
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -152,18 +132,8 @@ class MainActivity : ComponentActivity() {
                         ) { err -> toast(err) }
                     }
                 )
+                Spacer(Modifier.height(12.dp))
             }
-
-            status?.let {
-                Text(
-                    text = it,
-                    color = Color(0xFF90CAF9),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -212,10 +182,7 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(text = app.emoji, fontSize = 48.sp)
             }
             Text(

@@ -5,14 +5,19 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## できること
 
-- ホーム画面に 6 つの自作アプリをタイル表示
-  - フィットネス / 英語ニュース / 株 / 語学学習 / 割り勘 / タスク管理
-- タイルをタップすると:
-  - インストール済み（`packageName` 設定済み）なら、そのアプリを起動
-  - 未インストールなら、その repo の最新 GitHub Release から APK を取得して
-    インストール（Home が全アプリのインストール／更新ハブになる）
-- 起動時に `masakasakasama/Home` の最新 Release を確認し、新しければ
-  画面上部に更新バナーを表示してワンタップ更新
+ホーム画面に 6 つの自作アプリをタイル表示し、タップで開きます。
+
+| アプリ | 種別 | タップ時の挙動 |
+|---|---|---|
+| フィットネス | Web | https://masakasakasama.github.io/Fitness/ をブラウザで開く |
+| 英語ニュース | Web | https://masakasakasama.github.io/english-news-app/ |
+| 株 | インストール済みアプリ | `com.masakasakasama.stock` を直接起動 |
+| 語学学習 | Web | https://masakasakasama.github.io/Language_learning/ |
+| 割り勘 | Web | https://masakasakasama.github.io/warikan/ |
+| タスク管理 | Web | https://masakasakasama.github.io/Task_management/ |
+
+さらに起動時に `masakasakasama/Home` の最新 Release を確認し、新しければ
+画面上部に更新バナーを表示してワンタップ更新します。
 
 ## インストール手順（初回のみ手動）
 
@@ -29,16 +34,16 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 3. GitHub Actions が release APK をビルドし、`v<versionCode>` タグで
    Release を自動発行（`.github/workflows/release.yml`）
 
-## サブアプリを起動できるようにする
+## アプリの追加・変更
 
-各サブアプリの applicationId が分かったら
-`app/src/main/java/com/masakasakasama/home/data/AppCatalog.kt` の該当行に
-`packageName = "..."` を追加してください。設定するとインストール済みの場合に
-そのアプリを直接起動します（未設定の間は常に APK 取得フローになります）。
+`app/src/main/java/com/masakasakasama/home/data/AppCatalog.kt` を編集します。
 
-各サブアプリ側にも、APK を asset として添付する GitHub Release を作る
-ワークフロー（このリポジトリの `release.yml` と同様）を用意すると、
-Home から直接インストール／更新できます。
+- Web アプリ: `Target.Web("https://...")`
+- インストール済みアプリ: `Target.InstalledApp("applicationId")`
+  - 新しくインストール済みアプリを追加する場合は、
+    `AndroidManifest.xml` の `<queries>` にもその applicationId を
+    `<package android:name="..."/>` で追加してください（Android 11+ の
+    パッケージ可視性のため）
 
 ## 署名について
 
