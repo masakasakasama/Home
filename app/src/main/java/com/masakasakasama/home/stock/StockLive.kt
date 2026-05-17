@@ -63,10 +63,24 @@ object StockLive {
         readWatchlist(context).take(6).mapNotNull { fetchQuote(it) }
     }
 
-    /** Compact one-line summary, e.g. "7203.T +1.2% ・ ^N225 −0.4%". */
-    fun summarize(quotes: List<Quote>): String =
-        quotes.joinToString("  ・  ") { q ->
-            val sign = if (q.changePct >= 0) "+" else "−"
-            "${q.symbol} $sign%.1f%%".format(kotlin.math.abs(q.changePct))
-        }
+    private val LABELS = mapOf(
+        "USDJPY=X" to "ドル円",
+        "EURJPY=X" to "ユーロ円",
+        "^N225" to "日経平均",
+        "^GSPC" to "S&P 500",
+        "^DJI" to "ダウ",
+        "^IXIC" to "NASDAQ",
+        "GC=F" to "金",
+        "CL=F" to "原油",
+        "BTC-JPY" to "ビットコイン",
+        "BTC-USD" to "Bitcoin",
+        "7203.T" to "トヨタ",
+    )
+
+    /** Friendly display name for a ticker, falling back to the symbol. */
+    fun label(symbol: String): String = LABELS[symbol] ?: symbol
+
+    /** Price formatted for display (thousands separators, sane decimals). */
+    fun formatPrice(p: Double): String =
+        if (p >= 1000) "%,.0f".format(p) else "%,.2f".format(p)
 }
