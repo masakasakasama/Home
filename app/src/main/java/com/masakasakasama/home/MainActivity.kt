@@ -125,6 +125,23 @@ class MainActivity : ComponentActivity() {
                         toast("${app.title} がインストールされていません")
                     }
                 }
+
+                is Target.InstalledAppByName -> {
+                    val pm = context.packageManager
+                    val main = Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_LAUNCHER)
+                    val match = pm.queryIntentActivities(main, 0).firstOrNull {
+                        it.loadLabel(pm).toString()
+                            .contains(t.contains, ignoreCase = true)
+                    }
+                    val launch = match?.activityInfo?.packageName
+                        ?.let { pm.getLaunchIntentForPackage(it) }
+                    if (launch != null) {
+                        context.startActivity(launch)
+                    } else {
+                        toast("${app.title} がインストールされていません")
+                    }
+                }
             }
         }
 

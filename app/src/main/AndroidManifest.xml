@@ -7,7 +7,12 @@
     <!-- Needed on Android 11+ to launch the installed Stock app and to
          open https links in a browser. -->
     <queries>
-        <package android:name="com.masakasakasama.stock" />
+        <!-- Enumerate launchable apps so we can find the Stock app by its
+             display name (it is side-loaded, so its package id is unknown). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.BROWSABLE" />
