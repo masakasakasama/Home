@@ -12,11 +12,12 @@ android {
         minSdk = 26
         targetSdk = 34
 
-        // Bump these two when you release. The release workflow tags the
-        // GitHub Release as "v<versionCode>" and the in-app updater compares
-        // the installed versionCode with the latest release tag.
-        versionCode = 1
-        versionName = "1.0.0"
+        // Auto-numbered by CI: the release workflow passes VERSION_CODE
+        // (git commit count) so every push to main gets a higher number
+        // with no manual editing. Falls back to 1 for local builds.
+        val ciVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionCode = ciVersionCode
+        versionName = System.getenv("VERSION_NAME") ?: "1.0.$ciVersionCode"
     }
 
     signingConfigs {
@@ -28,6 +29,11 @@ android {
             storePassword = "homestore"
             keyAlias = "home"
             keyPassword = "homestore"
+            // Enable every signature scheme so even picky side-load
+            // installers (some Xiaomi/MIUI ones) accept the APK.
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 

@@ -28,11 +28,12 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## リリースの出し方
 
-1. `app/build.gradle.kts` の `versionCode`（整数）と `versionName` を上げる
-   - 更新判定は `versionCode` で行います。必ず増やしてください
-2. `main` に push
-3. GitHub Actions が release APK をビルドし、`v<versionCode>` タグで
-   Release を自動発行（`.github/workflows/release.yml`）
+`main` に push するだけです。バージョンは手で書く必要はありません。
+
+- GitHub Actions が commit 数からバージョンを自動採番
+  （`versionCode = git rev-list --count HEAD`、`versionName = 1.0.<同値>`）
+- release APK をビルドし、`v<versionCode>` タグで Release を自動発行
+- アプリは起動時に最新 Release を確認し、番号が大きければ更新バナーを表示
 
 ## アプリの追加・変更
 
