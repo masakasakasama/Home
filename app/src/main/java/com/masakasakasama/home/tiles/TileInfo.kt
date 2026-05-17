@@ -6,6 +6,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+
+data class NewsFeed(val items: List<String>, val ageMinutes: Long?)
 
 /** Top English headlines for the news widget. */
 object NewsLive {
@@ -26,9 +31,10 @@ object NewsLive {
         "<title>(?:<!\\[CDATA\\[)?(.*?)(?:]]>)?</title>",
         RegexOption.DOT_MATCHES_ALL
     )
+    private val PUBDATE = Regex("<pubDate>(.*?)</pubDate>", RegexOption.DOT_MATCHES_ALL)
 
-    /** Up to [n] substantive headlines, or empty when only fluff is available. */
-    suspend fun headlines(n: Int = 3): List<String> = withContext(Dispatchers.IO) {
+    /** Up to [n] substantive headlines + how old the latest item is. */
+    suspend fun feed(n: Int = 3): NewsFeed = withContext(Dispatchers.IO) {
         runCatching {
             val conn = (URL(FEED).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 6000
@@ -36,13 +42,29 @@ object NewsLive {
                 setRequestProperty("User-Agent", "Mozilla/5.0")
             }
             val xml = conn.inputStream.bufferedReader().use { it.readText() }
-            ITEM.findAll(xml)
+            val items = ITEM.findAll(xml)
                 .mapNotNull { m -> TITLE.find(m.groupValues[1])?.groupValues?.get(1)?.trim() }
                 .filter { it.isNotEmpty() && !FLUFF.containsMatchIn(it) }
                 .distinct()
                 .take(n)
                 .toList()
-        }.getOrDefault(emptyList())
+            val age = PUBDATE.find(xml)?.groupValues?.get(1)?.trim()?.let { raw ->
+                runCatching {
+                    val t = OffsetDateTime.parse(raw, DateTimeFormatter.RFC_1123_DATE_TIME)
+                    ChronoUnit.MINUTES.between(t, OffsetDateTime.now()).coerceAtLeast(0)
+                }.getOrNull()
+            }
+            NewsFeed(items, age)
+        }.getOrDefault(NewsFeed(emptyList(), null))
+    }
+
+    /** "32 MIN AGO" style relative label, blank when unknown. */
+    fun ago(minutes: Long?): String = when {
+        minutes == null -> ""
+        minutes < 1 -> "JUST NOW"
+        minutes < 60 -> "$minutes MIN AGO"
+        minutes < 1440 -> "${minutes / 60} HR AGO"
+        else -> "${minutes / 1440} D AGO"
     }
 }
 
@@ -81,4 +103,19 @@ object FitnessTip {
         }
         return "次のトレーニングを計画しよう"
     }
+
+    /** Compact label for the dashboard, e.g. "今日" / "明日" / "金曜". */
+    fun nextShort(today: LocalDate = LocalDate.now()): String {
+        if (today.dayOfWeek in trainDays) return "今日"
+        var d = today
+        repeat(7) {
+            d = d.plusDays(1)
+            if (d.dayOfWeek in trainDays)
+                return if (d == today.plusDays(1)) "明日" else "${jp(d.dayOfWeek)}曜"
+        }
+        return "未定"
+    }
+
+    /** How many planned sessions fall in the current Mon–Sun week. */
+    val perWeek: Int get() = trainDays.size
 }
