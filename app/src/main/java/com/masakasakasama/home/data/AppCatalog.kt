@@ -29,7 +29,7 @@ object AppCatalog {
 
     val apps = listOf(
         AppEntry("フィットネス", "💪", Color(0xFFE53935), pages("Fitness")),
-        AppEntry("英語ニュース", "📰", Color(0xFF1E88E5), pages("english-news-app")),
+        AppEntry("英語ニュース", "📰", Color(0xFF1E88E5), Target.Web("https://english-news-app-eight.vercel.app")),
         AppEntry("株", "📈", Color(0xFF43A047), Target.InstalledApp("com.masakasakasama.stock")),
         AppEntry("語学学習", "🗣️", Color(0xFF8E24AA), pages("Language_learning")),
         AppEntry("割り勘", "💴", Color(0xFFF4511E), pages("warikan")),
