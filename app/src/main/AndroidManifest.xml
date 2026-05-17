@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Read the Stock widget's watchlist via its signature-protected
+         provider (both apps are signed with the same key). -->
+    <uses-permission android:name="com.example.stockwidget.READ_WATCHLIST" />
 
     <!-- Needed on Android 11+ to launch the installed Stock app and to
          open https links in a browser. -->
