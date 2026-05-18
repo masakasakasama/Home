@@ -15,8 +15,7 @@ data class NewsFeed(val items: List<String>, val ageMinutes: Long?)
 /** Top English headlines for the news widget. */
 object NewsLive {
 
-    const val SOURCE = "BBC World"
-    private const val FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"
+    private const val DEFAULT_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"
 
     // Skip soft/celebrity/sport items so a slow news day shows nothing
     // rather than something しょうもない.
@@ -34,9 +33,12 @@ object NewsLive {
     private val PUBDATE = Regex("<pubDate>(.*?)</pubDate>", RegexOption.DOT_MATCHES_ALL)
 
     /** Up to [n] substantive headlines + how old the latest item is. */
-    suspend fun feed(n: Int = 3): NewsFeed = withContext(Dispatchers.IO) {
+    suspend fun feed(
+        feedUrl: String = DEFAULT_FEED,
+        n: Int = 3,
+    ): NewsFeed = withContext(Dispatchers.IO) {
         runCatching {
-            val conn = (URL(FEED).openConnection() as HttpURLConnection).apply {
+            val conn = (URL(feedUrl).openConnection() as HttpURLConnection).apply {
                 connectTimeout = 6000
                 readTimeout = 6000
                 setRequestProperty("User-Agent", "Mozilla/5.0")
@@ -68,11 +70,11 @@ object NewsLive {
     }
 }
 
-/** Date-based "when to train next" hint for the fitness widget. */
+/**
+ * Date-based "when to train next" hint. Training days are passed in as
+ * DayOfWeek values (1=Mon .. 7=Sun) so they can come from user settings.
+ */
 object FitnessTip {
-
-    // Simple 3x/week split; no history source, so this is a steady nudge.
-    val trainDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)
 
     val week: List<DayOfWeek> = listOf(
         DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
@@ -91,31 +93,18 @@ object FitnessTip {
 
     fun today(): DayOfWeek = LocalDate.now().dayOfWeek
 
-    fun next(today: LocalDate = LocalDate.now()): String {
-        if (today.dayOfWeek in trainDays) return "今日はトレーニング日 💪"
-        var d = today
-        repeat(7) {
-            d = d.plusDays(1)
-            if (d.dayOfWeek in trainDays) {
-                val label = if (d == today.plusDays(1)) "明日" else "${jp(d.dayOfWeek)}曜"
-                return "次は${label}がおすすめ"
-            }
-        }
-        return "次のトレーニングを計画しよう"
-    }
+    private fun isTrain(d: DayOfWeek, days: Set<Int>) = d.value in days
 
     /** Compact label for the dashboard, e.g. "今日" / "明日" / "金曜". */
-    fun nextShort(today: LocalDate = LocalDate.now()): String {
-        if (today.dayOfWeek in trainDays) return "今日"
+    fun nextShort(days: Set<Int>, today: LocalDate = LocalDate.now()): String {
+        if (days.isEmpty()) return "未設定"
+        if (isTrain(today.dayOfWeek, days)) return "今日"
         var d = today
         repeat(7) {
             d = d.plusDays(1)
-            if (d.dayOfWeek in trainDays)
+            if (isTrain(d.dayOfWeek, days))
                 return if (d == today.plusDays(1)) "明日" else "${jp(d.dayOfWeek)}曜"
         }
         return "未定"
     }
-
-    /** How many planned sessions fall in the current Mon–Sun week. */
-    val perWeek: Int get() = trainDays.size
 }

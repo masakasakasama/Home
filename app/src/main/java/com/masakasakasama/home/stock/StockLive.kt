@@ -58,9 +58,17 @@ object StockLive {
         }
     }.getOrNull()
 
-    /** Up-to-date quotes for the widget's watchlist, or empty when unavailable. */
-    suspend fun quotes(context: Context): List<Quote> = withContext(Dispatchers.IO) {
-        readWatchlist(context).take(6).mapNotNull { fetchQuote(it) }
+    /**
+     * Up-to-date quotes. [override] (a user watchlist from settings) wins;
+     * otherwise the Stock app's shared watchlist is used. Empty when both
+     * are unavailable.
+     */
+    suspend fun quotes(
+        context: Context,
+        override: List<String> = emptyList(),
+    ): List<Quote> = withContext(Dispatchers.IO) {
+        val symbols = override.ifEmpty { readWatchlist(context) }
+        symbols.take(6).mapNotNull { fetchQuote(it) }
     }
 
     private val LABELS = mapOf(

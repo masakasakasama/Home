@@ -5,9 +5,11 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +26,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,15 +48,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.masakasakasama.home.BuildConfig
 import com.masakasakasama.home.data.AppCatalog
-import com.masakasakasama.home.data.AppEntry
-import com.masakasakasama.home.data.Target
+import com.masakasakasama.home.data.Config
+import com.masakasakasama.home.data.Tile
+import com.masakasakasama.home.data.TileKind
+import com.masakasakasama.home.data.WebStatus
 import com.masakasakasama.home.github.ApkInstaller
 import com.masakasakasama.home.github.GitHubReleaseClient
 import com.masakasakasama.home.github.ReleaseInfo
@@ -57,7 +67,13 @@ import com.masakasakasama.home.stock.StockLive
 import com.masakasakasama.home.tiles.FitnessTip
 import com.masakasakasama.home.tiles.NewsFeed
 import com.masakasakasama.home.tiles.NewsLive
+import com.masakasakasama.home.tiles.WebStatusClient
+import com.masakasakasama.home.widget.HomeWidget
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.time.DayOfWeek
+import java.util.Date
+import java.util.Locale
 
 private val BG = Color(0xFF000000)
 private val DIVIDER = Color(0xFF1C1C1E)
@@ -70,37 +86,96 @@ private val DOWN = Color(0xFFFF453A)
 class MainActivity : ComponentActivity() {
 
     private var selfUpdate by mutableStateOf<ReleaseInfo?>(null)
-    private var stockQuotes by mutableStateOf<List<Quote>>(emptyList())
+    private var tiles by mutableStateOf<List<Tile>>(emptyList())
+    private var quotes by mutableStateOf<List<Quote>>(emptyList())
     private var news by mutableStateOf(NewsFeed(emptyList(), null))
+    private var statuses by mutableStateOf<Map<String, WebStatus>>(emptyMap())
+    private var refreshing by mutableStateOf(false)
+    private var lastSync by mutableStateOf(0L)
+    private var liveOk by mutableStateOf(true)
+    private var showSettings by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        seedFromCache()
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                Box(Modifier.fillMaxSize().background(BG)) { HomeScreen() }
+                Box(Modifier.fillMaxSize().background(BG)) {
+                    BackHandler(enabled = showSettings) { showSettings = false }
+                    if (showSettings) SettingsScreen() else Dashboard()
+                }
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
+        reloadConfig()
         checkSelfUpdate()
-        refreshStocks()
-        refreshNews()
+        refresh()
     }
 
-    private fun refreshStocks() {
-        lifecycleScope.launch {
-            val q = StockLive.quotes(applicationContext)
-            if (q.isNotEmpty()) stockQuotes = q
-        }
+    private fun reloadConfig() {
+        tiles = Config.tiles(this)
     }
 
-    private fun refreshNews() {
+    private fun seedFromCache() {
+        reloadConfig()
+        val (cs, _) = Config.cachedStock(this)
+        quotes = cs.map { Quote(it.first, it.second, it.third) }
+        val (items, age, _) = Config.cachedNews(this)
+        news = NewsFeed(items, age)
+        statuses = tiles.mapNotNull { t ->
+            Config.cachedStatus(this, t.id)?.let { t.id to it }
+        }.toMap()
+        lastSync = Config.lastSync(this)
+    }
+
+    private fun refresh() {
+        if (refreshing) return
+        refreshing = true
         lifecycleScope.launch {
-            val f = NewsLive.feed()
-            if (f.items.isNotEmpty()) news = f
+            try {
+                var ok = true
+                runCatching {
+                    val q = StockLive.quotes(
+                        applicationContext, Config.watchlist(applicationContext)
+                    )
+                    if (q.isNotEmpty()) {
+                        quotes = q
+                        Config.cacheStock(applicationContext, q.map {
+                            Triple(it.symbol, it.price, it.changePct)
+                        })
+                    } else if (quotes.isEmpty()) ok = false
+                }.onFailure { ok = false }
+
+                runCatching {
+                    val f = NewsLive.feed(Config.newsFeed(applicationContext))
+                    if (f.items.isNotEmpty()) {
+                        news = f
+                        Config.cacheNews(applicationContext, f.items, f.ageMinutes)
+                    } else if (news.items.isEmpty()) ok = false
+                }.onFailure { ok = false }
+
+                val freshStatuses = statuses.toMutableMap()
+                tiles.filter { it.kind == TileKind.WEB }.forEach { t ->
+                    val su = t.statusUrl ?: return@forEach
+                    runCatching {
+                        WebStatusClient.fetch(su)?.let { s ->
+                            freshStatuses[t.id] = s
+                            Config.cacheStatus(applicationContext, t.id, s)
+                        }
+                    }
+                }
+                statuses = freshStatuses
+
+                liveOk = ok
+                lastSync = Config.lastSync(applicationContext)
+                runCatching { HomeWidget.pushUpdate(applicationContext) }
+            } finally {
+                refreshing = false
+            }
         }
     }
 
@@ -113,14 +188,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun openTile(tile: Tile) {
+        when (tile.kind) {
+            TileKind.STOCK -> {
+                val pkg = tile.pkg
+                val launch = pkg?.let { packageManager.getLaunchIntentForPackage(it) }
+                if (launch != null) startActivity(launch)
+                else toast("${tile.title} がインストールされていません")
+            }
+            else -> {
+                val url = tile.url ?: return
+                runCatching {
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }.onFailure { toast("開けませんでした") }
+            }
+        }
+    }
+
+    private fun toast(msg: String) =
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+
+    // ---- Dashboard ----------------------------------------------------
+
     @Composable
-    private fun HomeScreen() {
+    private fun Dashboard() {
         val context = LocalContext.current
         val update = selfUpdate
-        var updateStatus by remember { mutableStateOf<String?>(null) }
         var downloadStarted by remember { mutableStateOf(false) }
-
-        fun toast(msg: String) = Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        var updateStatus by remember { mutableStateOf<String?>(null) }
 
         LaunchedEffect(update?.tag) {
             if (update == null || downloadStarted) return@LaunchedEffect
@@ -138,24 +236,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        fun openApp(app: AppEntry) {
-            when (val t = app.target) {
-                is Target.Web -> {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(t.url))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runCatching { context.startActivity(intent) }
-                        .onFailure { toast("ブラウザを開けませんでした") }
-                }
-
-                is Target.InstalledApp -> {
-                    val launch = context.packageManager
-                        .getLaunchIntentForPackage(t.packageName)
-                    if (launch != null) context.startActivity(launch)
-                    else toast("${app.title} がインストールされていません")
-                }
-            }
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -165,36 +245,90 @@ class MainActivity : ComponentActivity() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 22.dp, vertical = 20.dp),
+                    .padding(horizontal = 22.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Home", color = Color.White, fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text(
-                    text = updateStatus
-                        ?: (if (update != null) "UPDATE ${update.tag}"
-                            else "v${BuildConfig.VERSION_NAME}"),
-                    color = if (update != null) UP else LABEL,
-                    fontSize = 11.sp,
-                    letterSpacing = 2.sp,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Home", color = Color.White, fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = when {
+                            updateStatus != null -> updateStatus!!
+                            update != null -> "UPDATE ${update.tag} ・ v${BuildConfig.VERSION_NAME}"
+                            refreshing -> "更新中…"
+                            !liveOk && lastSync > 0L -> "オフライン ・ 前回 ${clock(lastSync)}"
+                            lastSync > 0L -> "最終更新 ${clock(lastSync)}"
+                            else -> "v${BuildConfig.VERSION_NAME}"
+                        },
+                        color = when {
+                            update != null -> UP
+                            !liveOk && lastSync > 0L -> DOWN
+                            else -> LABEL
+                        },
+                        fontSize = 11.sp,
+                        letterSpacing = 2.sp,
+                    )
+                }
+                HeaderButton(if (refreshing) "···" else "↻") { refresh() }
+                Spacer(Modifier.width(8.dp))
+                HeaderButton("⚙") { showSettings = true }
             }
             Hairline()
 
-            AppCatalog.apps.forEachIndexed { i, app ->
+            if (update != null && !ApkInstaller.canInstall(context)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { ApkInstaller.requestInstallPermission(context) }
+                        .padding(horizontal = 22.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "新しいバージョン (${update.tag})：インストール許可が必要",
+                        color = HI, fontSize = 13.sp, modifier = Modifier.weight(1f),
+                    )
+                    Text("許可 ›", color = UP, fontSize = 13.sp)
+                }
+                Hairline()
+            }
+
+            if (tiles.isEmpty()) {
+                Text(
+                    "表示するタイルがありません。⚙ から追加してください。",
+                    color = SUB, fontSize = 13.sp,
+                    modifier = Modifier.padding(22.dp),
+                )
+            }
+
+            tiles.forEachIndexed { i, tile ->
                 val no = "%02d".format(i + 1)
-                when {
-                    app.target is Target.InstalledApp ->
-                        StockSection(no, app, stockQuotes) { openApp(app) }
-                    app.category == "BBC WORLD" ->
-                        NewsSection(no, app, news) { openApp(app) }
-                    app.title == "フィットネス" ->
-                        FitnessSection(no, app) { openApp(app) }
-                    else -> WebSection(no, app) { openApp(app) }
+                when (tile.kind) {
+                    TileKind.STOCK -> StockSection(no, tile)
+                    TileKind.NEWS -> NewsSection(no, tile)
+                    TileKind.FITNESS -> FitnessSection(no, tile)
+                    TileKind.WEB -> WebSection(no, tile, statuses[tile.id])
                 }
                 Hairline()
             }
             Spacer(Modifier.height(40.dp))
+        }
+    }
+
+    private fun clock(ms: Long): String =
+        SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(ms))
+
+    @Composable
+    private fun HeaderButton(label: String, onClick: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .border(1.dp, DIVIDER, CircleShape)
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(label, color = HI, fontSize = 15.sp)
         }
     }
 
@@ -204,13 +338,13 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun SectionHeader(no: String, app: AppEntry, status: @Composable () -> Unit) {
+    private fun SectionHeader(no: String, tile: Tile, status: @Composable () -> Unit) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "$no  ${app.title}  /  ${app.category}",
+                text = "$no  ${tile.title}  /  ${tile.category}",
                 color = LABEL,
                 fontSize = 11.sp,
                 letterSpacing = 2.sp,
@@ -234,14 +368,19 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun StockSection(
-        no: String,
-        app: AppEntry,
-        quotes: List<Quote>,
-        onClick: () -> Unit,
-    ) {
-        SectionBody(onClick) {
-            SectionHeader(no, app) {
+    private fun SectionBody(onClick: () -> Unit, content: @Composable () -> Unit) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() }
+                .padding(horizontal = 22.dp, vertical = 26.dp),
+        ) { content() }
+    }
+
+    @Composable
+    private fun StockSection(no: String, tile: Tile) {
+        SectionBody({ openTile(tile) }) {
+            SectionHeader(no, tile) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier.size(6.dp).clip(CircleShape)
@@ -249,8 +388,10 @@ class MainActivity : ComponentActivity() {
                     )
                     Spacer(Modifier.width(7.dp))
                     Text(
-                        if (quotes.isEmpty()) "OFFLINE" else "LIVE",
-                        color = if (quotes.isEmpty()) SUB else UP,
+                        if (quotes.isEmpty()) "OFFLINE"
+                        else if (!liveOk) "CACHED" else "LIVE",
+                        color = if (quotes.isEmpty()) SUB
+                        else if (!liveOk) SUB else UP,
                         fontSize = 11.sp, letterSpacing = 2.sp,
                     )
                 }
@@ -286,17 +427,16 @@ class MainActivity : ComponentActivity() {
                 Hairline()
                 Spacer(Modifier.height(18.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(StockLive.label(q.symbol), color = HI, fontSize = 15.sp,
-                        modifier = Modifier.weight(1f))
-                    Text(StockLive.formatPrice(q.price), color = Color.White,
-                        fontSize = 17.sp)
-                    Spacer(Modifier.width(20.dp))
+                    Text(
+                        StockLive.label(q.symbol), color = HI, fontSize = 15.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(StockLive.formatPrice(q.price), color = Color.White, fontSize = 17.sp)
+                    Spacer(Modifier.width(18.dp))
                     Text(
                         changeText(q.changePct),
                         color = changeColor(q.changePct),
                         fontSize = 14.sp,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.width(96.dp),
                     )
                 }
             }
@@ -304,24 +444,19 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun NewsSection(
-        no: String,
-        app: AppEntry,
-        feed: NewsFeed,
-        onClick: () -> Unit,
-    ) {
-        SectionBody(onClick) {
-            SectionHeader(no, app) {
+    private fun NewsSection(no: String, tile: Tile) {
+        SectionBody({ openTile(tile) }) {
+            SectionHeader(no, tile) {
                 Text(
-                    NewsLive.ago(feed.ageMinutes),
+                    NewsLive.ago(news.ageMinutes),
                     color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp,
                 )
             }
-            if (feed.items.isEmpty()) {
+            if (news.items.isEmpty()) {
                 Text("目立ったニュースはありません", color = SUB, fontSize = 13.sp)
                 return@SectionBody
             }
-            feed.items.forEachIndexed { i, h ->
+            news.items.forEachIndexed { i, h ->
                 if (i > 0) {
                     Spacer(Modifier.height(16.dp))
                     Hairline()
@@ -343,13 +478,14 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun FitnessSection(no: String, app: AppEntry, onClick: () -> Unit) {
-        SectionBody(onClick) {
-            SectionHeader(no, app) {}
+    private fun FitnessSection(no: String, tile: Tile) {
+        val days = Config.trainDays(this)
+        SectionBody({ openTile(tile) }) {
+            SectionHeader(no, tile) {}
             val today = FitnessTip.today()
             Row(modifier = Modifier.fillMaxWidth()) {
                 FitnessTip.week.forEach { d ->
-                    val train = d in FitnessTip.trainDays
+                    val train = d.value in days
                     val isToday = d == today
                     Column(
                         modifier = Modifier.weight(1f),
@@ -390,7 +526,7 @@ class MainActivity : ComponentActivity() {
                     Text("今週", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "週${FitnessTip.perWeek}回",
+                        "週${days.size}回",
                         color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light,
                     )
                 }
@@ -398,7 +534,7 @@ class MainActivity : ComponentActivity() {
                     Text("次回", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        FitnessTip.nextShort(),
+                        FitnessTip.nextShort(days),
                         color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light,
                     )
                 }
@@ -407,28 +543,255 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun WebSection(no: String, app: AppEntry, onClick: () -> Unit) {
-        SectionBody(onClick) {
-            SectionHeader(no, app) {}
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    (app.target as? Target.Web)?.let { Uri.parse(it.url).host } ?: "開く",
-                    color = SUB, fontSize = 13.sp, modifier = Modifier.weight(1f),
-                )
-                Text("OPEN", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
-                Spacer(Modifier.width(10.dp))
-                Text("›", color = SUB, fontSize = 20.sp)
+    private fun WebSection(no: String, tile: Tile, status: WebStatus?) {
+        SectionBody({ openTile(tile) }) {
+            SectionHeader(no, tile) {}
+            if (status != null && (status.primary.isNotEmpty() || status.detail.isNotEmpty())) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            status.detail.ifBlank {
+                                (tile.url?.let { Uri.parse(it).host }) ?: "開く"
+                            },
+                            color = SUB, fontSize = 13.sp,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (status.primary.isNotEmpty()) {
+                        Spacer(Modifier.width(16.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                status.primary, color = Color.White,
+                                fontSize = 34.sp, fontWeight = FontWeight.Light,
+                            )
+                            if (status.label.isNotEmpty()) {
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    status.label, color = LABEL,
+                                    fontSize = 11.sp, letterSpacing = 2.sp,
+                                    modifier = Modifier.padding(bottom = 6.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        (tile.url?.let { Uri.parse(it).host }) ?: "開く",
+                        color = SUB, fontSize = 13.sp, modifier = Modifier.weight(1f),
+                    )
+                    Text("OPEN", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Text("›", color = SUB, fontSize = 20.sp)
+                }
             }
         }
     }
 
+    // ---- Settings -----------------------------------------------------
+
     @Composable
-    private fun SectionBody(onClick: () -> Unit, content: @Composable () -> Unit) {
+    private fun SettingsScreen() {
+        val ctx = this
+        var feed by remember { mutableStateOf(Config.newsFeed(ctx)) }
+        var watch by remember {
+            mutableStateOf(Config.watchlist(ctx).joinToString(", "))
+        }
+        var refreshMin by remember { mutableStateOf(Config.refreshMin(ctx)) }
+        var dayState by remember { mutableStateOf(Config.trainDays(ctx)) }
+        var order by remember { mutableStateOf(Config.allTilesOrdered(ctx)) }
+        var hidden by remember {
+            mutableStateOf(order.filter { Config.isHidden(ctx, it.id) }.map { it.id }.toSet())
+        }
+        var newTitle by remember { mutableStateOf("") }
+        var newUrl by remember { mutableStateOf("") }
+        var bump by remember { mutableStateOf(0) }
+
+        fun persistAndClose() {
+            Config.setNewsFeed(ctx, feed)
+            Config.setWatchlist(ctx, watch.split(",").map { it.trim() }.filter { it.isNotEmpty() })
+            Config.setRefreshMin(ctx, refreshMin)
+            Config.setTrainDays(ctx, dayState)
+            Config.setOrder(ctx, order.map { it.id })
+            order.forEach { Config.setHidden(ctx, it.id, it.id in hidden) }
+            showSettings = false
+            reloadConfig()
+            refresh()
+        }
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .verticalScroll(rememberScrollState())
+                .padding(22.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("設定", color = Color.White, fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .border(1.dp, DIVIDER, RoundedCornerShape(50))
+                        .clickable { persistAndClose() }
+                        .padding(horizontal = 18.dp, vertical = 9.dp)
+                ) { Text("保存して閉じる", color = HI, fontSize = 13.sp) }
+            }
+
+            SettingLabel("ニュース RSS フィード")
+            Field(feed, { feed = it })
+
+            SettingLabel("株 ウォッチリスト（カンマ区切り・空=株アプリ準拠）")
+            Field(watch, { watch = it })
+
+            SettingLabel("更新間隔（分）")
+            Row {
+                listOf(15, 30, 60).forEach { m ->
+                    Chip("$m", refreshMin == m) { refreshMin = m }
+                    Spacer(Modifier.width(8.dp))
+                }
+            }
+
+            SettingLabel("トレーニング曜日")
+            Row {
+                DayOfWeek.values().forEach { d ->
+                    val on = d.value in dayState
+                    Chip(FitnessTip.jp(d), on) {
+                        dayState = if (on) dayState - d.value else dayState + d.value
+                    }
+                    Spacer(Modifier.width(6.dp))
+                }
+            }
+
+            SettingLabel("タイルの表示・並び順")
+            bump.let {
+                order.forEachIndexed { i, t ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("${t.emoji}  ${t.title}", color = HI, fontSize = 15.sp,
+                            modifier = Modifier.weight(1f))
+                        ReorderBtn("▲", i > 0) {
+                            val m = order.toMutableList()
+                            val tmp = m[i]; m[i] = m[i - 1]; m[i - 1] = tmp
+                            order = m; bump++
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        ReorderBtn("▼", i < order.size - 1) {
+                            val m = order.toMutableList()
+                            val tmp = m[i]; m[i] = m[i + 1]; m[i + 1] = tmp
+                            order = m; bump++
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Switch(
+                            checked = t.id !in hidden,
+                            onCheckedChange = { vis ->
+                                hidden = if (vis) hidden - t.id else hidden + t.id
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = UP,
+                            ),
+                        )
+                        if (Config.isCustom(t.id)) {
+                            Spacer(Modifier.width(8.dp))
+                            ReorderBtn("✕", true) {
+                                Config.removeCustomTile(ctx, t.id)
+                                order = order.filter { it.id != t.id }
+                                bump++
+                            }
+                        }
+                    }
+                }
+            }
+
+            SettingLabel("カスタムリンクを追加")
+            Field(newTitle, { newTitle = it }, "タイトル")
+            Spacer(Modifier.height(8.dp))
+            Field(newUrl, { newUrl = it }, "https://…")
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0x1FFFFFFF))
+                    .clickable {
+                        val u = newUrl.trim()
+                        if (u.startsWith("http")) {
+                            Config.addCustomTile(ctx, newTitle, u)
+                            order = Config.allTilesOrdered(ctx)
+                            newTitle = ""; newUrl = ""; bump++
+                        } else toast("URL は http から始めてください")
+                    }
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+            ) { Text("追加", color = HI, fontSize = 14.sp) }
+
+            Spacer(Modifier.height(40.dp))
+        }
+    }
+
+    @Composable
+    private fun SettingLabel(text: String) {
+        Spacer(Modifier.height(26.dp))
+        Text(text, color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
+        Spacer(Modifier.height(10.dp))
+    }
+
+    @Composable
+    private fun Field(
+        value: String,
+        onChange: (String) -> Unit,
+        placeholder: String = "",
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            placeholder = { Text(placeholder, color = SUB) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0x12FFFFFF),
+                unfocusedContainerColor = Color(0x12FFFFFF),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                cursorColor = Color.White,
+                focusedIndicatorColor = SUB,
+                unfocusedIndicatorColor = DIVIDER,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+
+    @Composable
+    private fun Chip(text: String, on: Boolean, onClick: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(if (on) UP.copy(alpha = 0.25f) else Color(0x12FFFFFF))
+                .border(
+                    1.dp,
+                    if (on) UP else DIVIDER,
+                    RoundedCornerShape(50),
+                )
                 .clickable { onClick() }
-                .padding(horizontal = 22.dp, vertical = 26.dp),
-        ) { content() }
+                .padding(horizontal = 16.dp, vertical = 9.dp),
+        ) {
+            Text(text, color = if (on) Color.White else SUB, fontSize = 13.sp)
+        }
+    }
+
+    @Composable
+    private fun ReorderBtn(label: String, enabled: Boolean, onClick: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .border(1.dp, DIVIDER, RoundedCornerShape(8.dp))
+                .clickable(enabled = enabled) { onClick() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(label, color = if (enabled) HI else Color(0xFF3A3A3C), fontSize = 13.sp)
+        }
     }
 }
