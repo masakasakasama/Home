@@ -55,6 +55,8 @@ object Config {
             url = pages("Language_learning")),
         Tile("split", "割り勘", "💴", 0xFFF4511E, "SPLIT", TileKind.WEB,
             url = pages("warikan")),
+        Tile("marriage", "婚姻手続き", "💍", 0xFFD81B60, "PROCEDURE", TileKind.WEB,
+            url = pages("Marriage_procedure")),
     )
 
     const val DEFAULT_NEWS_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"
