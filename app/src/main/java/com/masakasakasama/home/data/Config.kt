@@ -57,6 +57,8 @@ object Config {
             url = pages("warikan")),
         Tile("marriage", "婚姻手続き", "💍", 0xFFD81B60, "PROCEDURE", TileKind.WEB,
             url = pages("Marriage_procedure")),
+        Tile("cooking", "料理", "🍳", 0xFFFFA726, "COOKING", TileKind.WEB,
+            url = pages("Cooking")),
         Tile("calendar", "カレンダー", "📅", 0xFF5E35B1, "CALENDAR", TileKind.WEB,
             url = pages("Calender")),
         Tile("weather", "天気", "☀️", 0xFF00ACC1, "WEATHER", TileKind.APP,

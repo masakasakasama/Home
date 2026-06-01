@@ -5,7 +5,7 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## できること
 
-ホーム画面に 9 つの自作アプリをタイル表示し、タップで開きます。
+ホーム画面に 10 個の自作アプリをタイル表示し、タップで開きます。
 
 | アプリ | 種別 | タップ時の挙動 |
 |---|---|---|
@@ -16,6 +16,7 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 | 割り勘 | Web | https://masakasakasama.github.io/warikan/ |
 | タスク管理 | Web | https://masakasakasama.github.io/Task_management/ |
 | 婚姻手続き | Web | https://masakasakasama.github.io/Marriage_procedure/ |
+| 料理 | Web | https://masakasakasama.github.io/Cooking/ |
 | カレンダー | Web | https://masakasakasama.github.io/Calender/ |
 | 天気 | インストール済みアプリ | `com.example.weather` を直接起動（未インストール時は APK Release を開く） |
 
