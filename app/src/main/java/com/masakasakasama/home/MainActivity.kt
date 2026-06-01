@@ -76,10 +76,12 @@ import java.util.Date
 import java.util.Locale
 
 private val BG = Color(0xFF000000)
-private val DIVIDER = Color(0xFF1C1C1E)
-private val LABEL = Color(0xFF6E6E73)
-private val SUB = Color(0xFF8E8E93)
-private val HI = Color(0xFFEDEDED)
+private val CARD = Color(0xFF111318)
+private val CARD_HI = Color(0xFF171A21)
+private val DIVIDER = Color(0xFF252932)
+private val LABEL = Color(0xFF8A8F9C)
+private val SUB = Color(0xFFB5BAC4)
+private val HI = Color(0xFFF4F6FA)
 private val UP = Color(0xFF32D74B)
 private val DOWN = Color(0xFFFF453A)
 
@@ -315,7 +317,7 @@ class MainActivity : ComponentActivity() {
                     TileKind.WEB -> WebSection(no, tile, statuses[tile.id])
                     TileKind.APP -> AppSection(no, tile)
                 }
-                Hairline()
+                Spacer(Modifier.height(10.dp))
             }
             Spacer(Modifier.height(40.dp))
         }
@@ -330,6 +332,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
+                .background(CARD)
                 .border(1.dp, DIVIDER, CircleShape)
                 .clickable { onClick() },
             contentAlignment = Alignment.Center,
@@ -349,16 +352,46 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "$no  ${tile.title}  /  ${tile.category}",
-                color = LABEL,
-                fontSize = 11.sp,
-                letterSpacing = 2.sp,
-                modifier = Modifier.weight(1f),
-            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(tile.colorArgb).copy(alpha = 0.22f))
+                    .border(
+                        1.dp,
+                        Color(tile.colorArgb).copy(alpha = 0.45f),
+                        RoundedCornerShape(16.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(tile.emoji, color = HI, fontSize = 22.sp)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(no, color = LABEL, fontSize = 11.sp, letterSpacing = 1.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        tile.category,
+                        color = Color(tile.colorArgb),
+                        fontSize = 11.sp,
+                        letterSpacing = 1.4.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    tile.title,
+                    color = HI,
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             status()
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(18.dp))
     }
 
     private fun changeColor(p: Double) = when {
@@ -378,9 +411,24 @@ class MainActivity : ComponentActivity() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(CARD)
+                .border(1.dp, DIVIDER, RoundedCornerShape(28.dp))
                 .clickable { onClick() }
-                .padding(horizontal = 22.dp, vertical = 26.dp),
+                .padding(horizontal = 16.dp, vertical = 18.dp),
         ) { content() }
+    }
+
+    private fun destinationText(tile: Tile): String {
+        if (tile.kind == TileKind.APP) {
+            return tile.pkg ?: "アプリを開く"
+        }
+        val raw = tile.url ?: return "開く"
+        val uri = Uri.parse(raw)
+        val host = uri.host ?: raw
+        val path = uri.path?.trim('/')?.takeIf { it.isNotBlank() }
+        return if (path == null) host else "$host/$path"
     }
 
     @Composable
@@ -463,11 +511,7 @@ class MainActivity : ComponentActivity() {
                 return@SectionBody
             }
             news.items.forEachIndexed { i, h ->
-                if (i > 0) {
-                    Spacer(Modifier.height(16.dp))
-                    Hairline()
-                    Spacer(Modifier.height(16.dp))
-                }
+                if (i > 0) Spacer(Modifier.height(16.dp))
                 Row {
                     Text(
                         "%02d".format(i + 1),
@@ -555,19 +599,27 @@ class MainActivity : ComponentActivity() {
             SectionHeader(no, tile) {
                 Text(
                     if (installed) "INSTALLED" else "NOT INSTALLED",
-                    color = if (installed) LABEL else DOWN,
+                    color = if (installed) UP else DOWN,
                     fontSize = 11.sp,
                     letterSpacing = 2.sp,
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(CARD_HI)
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
-                    if (installed) tile.pkg ?: "アプリを開く" else "未インストール時は配布ページを開く",
+                    if (installed) destinationText(tile) else "未インストール時は配布ページを開く",
                     color = SUB,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Text("OPEN", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
+                Text("開く", color = HI, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(10.dp))
                 Text("›", color = SUB, fontSize = 20.sp)
             }
@@ -608,12 +660,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(CARD_HI)
+                        .padding(horizontal = 14.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        (tile.url?.let { Uri.parse(it).host }) ?: "開く",
-                        color = SUB, fontSize = 13.sp, modifier = Modifier.weight(1f),
+                        destinationText(tile),
+                        color = SUB,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    Text("OPEN", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
+                    Text("開く", color = HI, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(10.dp))
                     Text("›", color = SUB, fontSize = 20.sp)
                 }
