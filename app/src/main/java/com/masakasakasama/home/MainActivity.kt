@@ -190,22 +190,27 @@ class MainActivity : ComponentActivity() {
 
     private fun openTile(tile: Tile) {
         when (tile.kind) {
-            TileKind.STOCK -> {
+            TileKind.STOCK, TileKind.APP -> {
                 val pkg = tile.pkg
                 val launch = pkg?.let { packageManager.getLaunchIntentForPackage(it) }
                 if (launch != null) startActivity(launch)
+                else if (tile.url != null) openUrl(tile.url)
                 else toast("${tile.title} がインストールされていません")
             }
             else -> {
                 val url = tile.url ?: return
-                runCatching {
-                    startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }.onFailure { toast("開けませんでした") }
+                openUrl(url)
             }
         }
+    }
+
+    private fun openUrl(url: String) {
+        runCatching {
+            startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }.onFailure { toast("開けませんでした") }
     }
 
     private fun toast(msg: String) =
@@ -308,6 +313,7 @@ class MainActivity : ComponentActivity() {
                     TileKind.NEWS -> NewsSection(no, tile)
                     TileKind.FITNESS -> FitnessSection(no, tile)
                     TileKind.WEB -> WebSection(no, tile, statuses[tile.id])
+                    TileKind.APP -> AppSection(no, tile)
                 }
                 Hairline()
             }
@@ -538,6 +544,32 @@ class MainActivity : ComponentActivity() {
                         color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light,
                     )
                 }
+            }
+        }
+    }
+
+    @Composable
+    private fun AppSection(no: String, tile: Tile) {
+        val installed = tile.pkg?.let { packageManager.getLaunchIntentForPackage(it) != null } == true
+        SectionBody({ openTile(tile) }) {
+            SectionHeader(no, tile) {
+                Text(
+                    if (installed) "INSTALLED" else "NOT INSTALLED",
+                    color = if (installed) LABEL else DOWN,
+                    fontSize = 11.sp,
+                    letterSpacing = 2.sp,
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (installed) tile.pkg ?: "アプリを開く" else "未インストール時は配布ページを開く",
+                    color = SUB,
+                    fontSize = 13.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("OPEN", color = LABEL, fontSize = 11.sp, letterSpacing = 2.sp)
+                Spacer(Modifier.width(10.dp))
+                Text("›", color = SUB, fontSize = 20.sp)
             }
         }
     }

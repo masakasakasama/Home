@@ -4,7 +4,7 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-enum class TileKind { STOCK, NEWS, FITNESS, WEB }
+enum class TileKind { STOCK, NEWS, FITNESS, WEB, APP }
 
 data class Tile(
     val id: String,
@@ -57,6 +57,11 @@ object Config {
             url = pages("warikan")),
         Tile("marriage", "婚姻手続き", "💍", 0xFFD81B60, "PROCEDURE", TileKind.WEB,
             url = pages("Marriage_procedure")),
+        Tile("calendar", "カレンダー", "📅", 0xFF5E35B1, "CALENDAR", TileKind.WEB,
+            url = pages("Calender")),
+        Tile("weather", "天気", "☀️", 0xFF00ACC1, "WEATHER", TileKind.APP,
+            url = "https://github.com/masakasakasama/Wheather/releases/tag/latest-debug",
+            pkg = "com.example.weather"),
     )
 
     const val DEFAULT_NEWS_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"

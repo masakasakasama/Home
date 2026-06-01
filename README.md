@@ -5,7 +5,7 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## できること
 
-ホーム画面に 7 つの自作アプリをタイル表示し、タップで開きます。
+ホーム画面に 9 つの自作アプリをタイル表示し、タップで開きます。
 
 | アプリ | 種別 | タップ時の挙動 |
 |---|---|---|
@@ -16,6 +16,8 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 | 割り勘 | Web | https://masakasakasama.github.io/warikan/ |
 | タスク管理 | Web | https://masakasakasama.github.io/Task_management/ |
 | 婚姻手続き | Web | https://masakasakasama.github.io/Marriage_procedure/ |
+| カレンダー | Web | https://masakasakasama.github.io/Calender/ |
+| 天気 | インストール済みアプリ | `com.example.weather` を直接起動（未インストール時は APK Release を開く） |
 
 さらに起動時に `masakasakasama/Home` の最新 Release を確認し、新しければ
 自動でダウンロードして OS のインストール確認まで進みます（初回だけ
@@ -42,7 +44,7 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 `app/src/main/java/com/masakasakasama/home/data/Config.kt` の `DEFAULTS` を編集します。
 
 - Web アプリ: `Tile(..., TileKind.WEB, url = "https://...")`
-- インストール済みアプリ: `Tile(..., TileKind.STOCK, pkg = "applicationId")`
+- インストール済みアプリ: `Tile(..., TileKind.APP, pkg = "applicationId")`
   - 新しくインストール済みアプリを追加する場合は、
     `AndroidManifest.xml` の `<queries>` にもその applicationId を
     `<package android:name="..."/>` で追加してください（Android 11+ の
