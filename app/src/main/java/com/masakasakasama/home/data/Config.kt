@@ -61,6 +61,8 @@ object Config {
             url = pages("Cooking")),
         Tile("calendar", "カレンダー", "📅", 0xFF5E35B1, "CALENDAR", TileKind.WEB,
             url = pages("Calender")),
+        Tile("cpre", "CPRE学習", "📚", 0xFF7C4DFF, "CERTIFICATION", TileKind.WEB,
+            url = "https://cpre-english-study-masak.masakasakasama.chatgpt.site/"),
         Tile("weather", "天気", "☀️", 0xFF00ACC1, "WEATHER", TileKind.APP,
             url = "https://github.com/masakasakasama/Wheather/releases/tag/latest-debug",
             pkg = "com.example.weather"),
