@@ -36,6 +36,7 @@ object ApkInstaller {
         context: Context,
         apkUrl: String,
         tag: String,
+        onInstallerOpened: () -> Unit = {},
         onError: (String) -> Unit,
     ) {
         val fileName = "Home-update-$tag.apk"
@@ -77,7 +78,9 @@ object ApkInstaller {
                     onError("ダウンロードに失敗しました")
                     return
                 }
-                launchInstaller(context, target, onError)
+                if (launchInstaller(context, target, onError)) {
+                    onInstallerOpened()
+                }
             }
         }
         val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
@@ -93,7 +96,7 @@ object ApkInstaller {
         context: Context,
         apk: File,
         onError: (String) -> Unit,
-    ) {
+    ): Boolean =
         try {
             val uri = FileProvider.getUriForFile(
                 context,
@@ -106,8 +109,9 @@ object ApkInstaller {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
+            true
         } catch (e: Exception) {
             onError("インストーラーを起動できませんでした: ${e.message}")
+            false
         }
-    }
 }

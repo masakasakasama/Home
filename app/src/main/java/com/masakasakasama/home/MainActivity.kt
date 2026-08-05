@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -37,7 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,12 +75,12 @@ import java.time.DayOfWeek
 import java.util.Date
 import java.util.Locale
 
-private val BG = Color(0xFF000000)
-private val CARD = Color(0xFF111318)
-private val CARD_HI = Color(0xFF171A21)
-private val DIVIDER = Color(0xFF252932)
-private val LABEL = Color(0xFF8A8F9C)
-private val SUB = Color(0xFFB5BAC4)
+private val BG = Color(0xFF090B10)
+private val CARD = Color(0xFF141821)
+private val CARD_HI = Color(0xFF1A202B)
+private val DIVIDER = Color(0xFF29303B)
+private val LABEL = Color(0xFF929AA8)
+private val SUB = Color(0xFFC0C6D0)
 private val HI = Color(0xFFF4F6FA)
 private val UP = Color(0xFF32D74B)
 private val DOWN = Color(0xFFFF453A)
@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
     private var lastSync by mutableStateOf(0L)
     private var liveOk by mutableStateOf(true)
     private var showSettings by mutableStateOf(false)
+    private var lastUpdateCheckAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,12 +182,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkSelfUpdate() {
+    private fun checkSelfUpdate(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastUpdateCheckAt < 10 * 60_000L) return
+        lastUpdateCheckAt = now
         lifecycleScope.launch {
             val latest = GitHubReleaseClient.latestRelease(
                 AppCatalog.SELF_OWNER, AppCatalog.SELF_REPO
             ) ?: return@launch
-            if (latest.versionCode > BuildConfig.VERSION_CODE) selfUpdate = latest
+            selfUpdate = latest.takeIf { it.versionCode > BuildConfig.VERSION_CODE }
         }
     }
 
@@ -226,22 +230,10 @@ class MainActivity : ComponentActivity() {
         val update = selfUpdate
         var downloadStarted by remember { mutableStateOf(false) }
         var updateStatus by remember { mutableStateOf<String?>(null) }
-
-        LaunchedEffect(update?.tag) {
-            if (update == null || downloadStarted) return@LaunchedEffect
-            if (!ApkInstaller.canInstall(context)) return@LaunchedEffect
-            downloadStarted = true
-            updateStatus = "DOWNLOADING ${update.tag}"
-            ApkInstaller.downloadAndInstall(
-                context = context,
-                apkUrl = update.apkUrl,
-                tag = "self-${update.tag}",
-            ) { err ->
-                updateStatus = null
-                downloadStarted = false
-                toast(err)
-            }
+        val featured = tiles.filter {
+            it.kind == TileKind.STOCK || it.kind == TileKind.NEWS || it.kind == TileKind.FITNESS
         }
+        val launchers = tiles.filterNot { it in featured }
 
         Column(
             modifier = Modifier
@@ -252,21 +244,21 @@ class MainActivity : ComponentActivity() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 22.dp, vertical = 18.dp),
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Home", color = Color.White, fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(3.dp))
+                    Text("Home", color = Color.White, fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
+                    Spacer(Modifier.height(5.dp))
                     Text(
                         text = when {
                             updateStatus != null -> updateStatus!!
-                            update != null -> "UPDATE ${update.tag} ・ v${BuildConfig.VERSION_NAME}"
+                            update != null -> "更新 ${update.tag} が利用できます"
                             refreshing -> "更新中…"
                             !liveOk && lastSync > 0L -> "オフライン ・ 前回 ${clock(lastSync)}"
-                            lastSync > 0L -> "最終更新 ${clock(lastSync)}"
-                            else -> "v${BuildConfig.VERSION_NAME}"
+                            lastSync > 0L -> "${tiles.size} APPS ・ 最終更新 ${clock(lastSync)}"
+                            else -> "${tiles.size} APPS ・ v${BuildConfig.VERSION_NAME}"
                         },
                         color = when {
                             update != null -> UP
@@ -274,30 +266,43 @@ class MainActivity : ComponentActivity() {
                             else -> LABEL
                         },
                         fontSize = 11.sp,
-                        letterSpacing = 2.sp,
+                        letterSpacing = 1.2.sp,
                     )
                 }
-                HeaderButton(if (refreshing) "···" else "↻") { refresh() }
+                HeaderButton(if (refreshing) "···" else "↻") {
+                    checkSelfUpdate(force = true)
+                    refresh()
+                }
                 Spacer(Modifier.width(8.dp))
                 HeaderButton("⚙") { showSettings = true }
             }
-            Hairline()
 
-            if (update != null && !ApkInstaller.canInstall(context)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { ApkInstaller.requestInstallPermission(context) }
-                        .padding(horizontal = 22.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            if (update != null) {
+                UpdateBanner(
+                    update = update,
+                    busy = downloadStarted,
+                    status = updateStatus,
                 ) {
-                    Text(
-                        "新しいバージョン (${update.tag})：インストール許可が必要",
-                        color = HI, fontSize = 13.sp, modifier = Modifier.weight(1f),
-                    )
-                    Text("許可 ›", color = UP, fontSize = 13.sp)
+                    if (!ApkInstaller.canInstall(context)) {
+                        ApkInstaller.requestInstallPermission(context)
+                    } else if (!downloadStarted) {
+                        downloadStarted = true
+                        updateStatus = "${update.tag} をダウンロード中…"
+                        ApkInstaller.downloadAndInstall(
+                            context = context,
+                            apkUrl = update.apkUrl,
+                            tag = "self-${update.tag}",
+                            onInstallerOpened = {
+                                updateStatus = null
+                                downloadStarted = false
+                            },
+                        ) { err ->
+                            updateStatus = null
+                            downloadStarted = false
+                            toast(err)
+                        }
+                    }
                 }
-                Hairline()
             }
 
             if (tiles.isEmpty()) {
@@ -308,18 +313,158 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            tiles.forEachIndexed { i, tile ->
+            if (featured.isNotEmpty()) {
+                SectionLabel("TODAY", "必要な情報だけ")
+            }
+            featured.forEach { tile ->
+                val i = tiles.indexOf(tile)
                 val no = "%02d".format(i + 1)
                 when (tile.kind) {
                     TileKind.STOCK -> StockSection(no, tile)
                     TileKind.NEWS -> NewsSection(no, tile)
                     TileKind.FITNESS -> FitnessSection(no, tile)
-                    TileKind.WEB -> WebSection(no, tile, statuses[tile.id])
-                    TileKind.APP -> AppSection(no, tile)
+                    else -> Unit
                 }
                 Spacer(Modifier.height(10.dp))
             }
+            if (launchers.isNotEmpty()) {
+                SectionLabel("APPS", "${launchers.size}件のランチャー")
+                LauncherGrid(launchers)
+            }
             Spacer(Modifier.height(40.dp))
+        }
+    }
+
+    @Composable
+    private fun UpdateBanner(
+        update: ReleaseInfo,
+        busy: Boolean,
+        status: String?,
+        onClick: () -> Unit,
+    ) {
+        val context = LocalContext.current
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(UP.copy(alpha = 0.16f))
+                .border(1.dp, UP.copy(alpha = 0.55f), RoundedCornerShape(22.dp))
+                .clickable(enabled = !busy) { onClick() }
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(38.dp).clip(CircleShape).background(UP.copy(alpha = 0.22f)),
+                contentAlignment = Alignment.Center,
+            ) { Text("↓", color = UP, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Home ${update.tag} に更新", color = HI, fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    status ?: if (ApkInstaller.canInstall(context)) "タップしてダウンロード"
+                    else "タップしてインストールを許可",
+                    color = SUB, fontSize = 12.sp,
+                )
+            }
+            Text(if (busy) "···" else "更新 ›", color = UP, fontSize = 13.sp,
+                fontWeight = FontWeight.Bold)
+        }
+    }
+
+    @Composable
+    private fun SectionLabel(title: String, detail: String) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, color = HI, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = 1.8.sp, modifier = Modifier.weight(1f))
+            Text(detail, color = LABEL, fontSize = 11.sp)
+        }
+    }
+
+    @Composable
+    private fun LauncherGrid(launchers: List<Tile>) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            launchers.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    pair.forEach { tile ->
+                        LauncherCard(tile, statuses[tile.id], Modifier.weight(1f))
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun LauncherCard(
+        tile: Tile,
+        status: WebStatus?,
+        modifier: Modifier = Modifier,
+    ) {
+        val installed = tile.pkg?.let { packageManager.getLaunchIntentForPackage(it) != null } == true
+        val badge = status?.primary?.takeIf { it.isNotBlank() } ?: when {
+            tile.id == "cpre" -> "認証"
+            tile.kind == TileKind.APP && installed -> "起動"
+            tile.kind == TileKind.APP -> "入手"
+            else -> "WEB"
+        }
+        Column(
+            modifier = modifier
+                .height(164.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(CARD)
+                .border(1.dp, DIVIDER, RoundedCornerShape(24.dp))
+                .clickable { openTile(tile) }
+                .padding(15.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                        .background(Color(tile.colorArgb).copy(alpha = 0.22f)),
+                    contentAlignment = Alignment.Center,
+                ) { Text(tile.emoji, color = HI, fontSize = 20.sp) }
+                Spacer(Modifier.weight(1f))
+                Text(
+                    badge,
+                    color = if (installed || tile.kind == TileKind.WEB) Color(tile.colorArgb) else LABEL,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+            }
+            Spacer(Modifier.height(15.dp))
+            Text(tile.category, color = Color(tile.colorArgb), fontSize = 10.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                tile.title,
+                color = HI,
+                fontSize = 17.sp,
+                lineHeight = 21.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                status?.detail?.takeIf { it.isNotBlank() }
+                    ?: if (tile.kind == TileKind.APP && !installed) "配布ページを開く  ›"
+                    else "開く  ›",
+                color = SUB,
+                fontSize = 11.sp,
+                maxLines = 1,
+            )
         }
     }
 

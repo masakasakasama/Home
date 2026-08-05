@@ -16,9 +16,14 @@ data class Tile(
     val url: String? = null,
     val pkg: String? = null,
 ) {
-    /** github.io pages can publish a tiny status.json next to index. */
+    /** GitHub Pages apps can publish a tiny status.json next to index. */
     val statusUrl: String?
-        get() = if (kind == TileKind.WEB && url != null && url.endsWith("/"))
+        get() = if (
+            kind == TileKind.WEB &&
+            url != null &&
+            url.endsWith("/") &&
+            url.contains(".github.io/")
+        )
             url + "status.json" else null
 }
 
@@ -61,11 +66,29 @@ object Config {
             url = pages("Cooking")),
         Tile("calendar", "カレンダー", "📅", 0xFF5E35B1, "CALENDAR", TileKind.WEB,
             url = pages("Calender")),
+        Tile("trip", "旅行計画", "✈️", 0xFF29B6F6, "TRIP", TileKind.WEB,
+            url = pages("Trip_Plan")),
+        Tile("baby_budget", "Baby家計簿", "👶", 0xFFF06292, "BUDGET", TileKind.WEB,
+            url = pages("household_budget_management_forbaby")),
         Tile("cpre", "CPRE学習", "📚", 0xFF7C4DFF, "CERTIFICATION", TileKind.WEB,
             url = "https://cpre-english-study-masak.masakasakasama.chatgpt.site/"),
+        Tile("capm", "CAPM学習", "🎓", 0xFF42A5F5, "CERTIFICATION", TileKind.WEB,
+            url = "https://capm-baby.masakasakasama.chatgpt.site/"),
         Tile("weather", "天気", "☀️", 0xFF00ACC1, "WEATHER", TileKind.APP,
             url = "https://github.com/masakasakasama/Wheather/releases/tag/latest-debug",
             pkg = "com.example.weather"),
+        Tile("alarm", "Galaxy 時計", "⏰", 0xFFFF7043, "ALARM", TileKind.APP,
+            url = "https://github.com/masakasakasama/Alarm/releases/latest",
+            pkg = "com.galaxyalarm"),
+        Tile("web_search", "Web Search", "🔎", 0xFF26C6DA, "UTILITY", TileKind.APP,
+            url = "https://github.com/masakasakasama/Select_to_search/releases/tag/debug-latest",
+            pkg = "com.tatsuya.websearch"),
+        Tile("aaos", "AAOS Study", "🚗", 0xFF26A69A, "LEARNING", TileKind.APP,
+            url = "https://github.com/masakasakasama/AAOS_study/releases/tag/latest",
+            pkg = "com.example.aaosstudy"),
+        Tile("sen", "SEN", "¥", 0xFFFF6677, "OPERATOR", TileKind.APP,
+            url = "https://github.com/masakasakasama/sen-android-updates/releases/latest",
+            pkg = "com.masakasakasama.sen"),
     )
 
     const val DEFAULT_NEWS_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"

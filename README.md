@@ -5,25 +5,35 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## できること
 
-ホーム画面に 11 個の自作アプリをタイル表示し、タップで開きます。
+全18件のうち株・ニュース・運動を情報カードとして表示し、残りを
+2列のランチャーで表示します。Androidアプリはインストール済みなら直接起動し、
+未インストールなら配布ページを開きます。
 
 | アプリ | 種別 | タップ時の挙動 |
 |---|---|---|
-| フィットネス | Web | https://masakasakasama.github.io/Fitness/ をブラウザで開く |
-| 英語ニュース | Web | https://masakasakasama.github.io/english-news-app/ |
-| 株 | インストール済みアプリ | `com.masakasakasama.stock` を直接起動 |
+| 株 | Android | `com.example.stockwidget` を直接起動 |
+| タスク管理 | Web | https://masakasakasama.github.io/Task_management/ |
+| フィットネス | Web | https://masakasakasama.github.io/Fitness/ |
+| 英語ニュース | Web | https://english-news-app-eight.vercel.app/ |
 | 語学学習 | Web | https://masakasakasama.github.io/Language_learning/ |
 | 割り勘 | Web | https://masakasakasama.github.io/warikan/ |
-| タスク管理 | Web | https://masakasakasama.github.io/Task_management/ |
 | 婚姻手続き | Web | https://masakasakasama.github.io/Marriage_procedure/ |
 | 料理 | Web | https://masakasakasama.github.io/Cooking/ |
 | カレンダー | Web | https://masakasakasama.github.io/Calender/ |
+| 旅行計画 | Web | https://masakasakasama.github.io/Trip_Plan/ |
+| Baby家計簿 | Web | https://masakasakasama.github.io/household_budget_management_forbaby/ |
 | CPRE学習 | Web | https://cpre-english-study-masak.masakasakasama.chatgpt.site/（本人限定・認証あり） |
-| 天気 | インストール済みアプリ | `com.example.weather` を直接起動（未インストール時は APK Release を開く） |
+| CAPM学習 | Web | https://capm-baby.masakasakasama.chatgpt.site/ |
+| 天気 | Android | `com.example.weather` を直接起動 |
+| Galaxy 時計 | Android | `com.galaxyalarm` を直接起動 |
+| Web Search | Android | `com.tatsuya.websearch` を直接起動 |
+| AAOS Study | Android | `com.example.aaosstudy` を直接起動 |
+| SEN | Android | `com.masakasakasama.sen` を直接起動 |
 
 さらに起動時に `masakasakasama/Home` の最新 Release を確認し、新しければ
-自動でダウンロードして OS のインストール確認まで進みます（初回だけ
-「不明なアプリのインストール」許可が必要。許可後は起動するだけで更新）。
+画面上部に更新カードを表示します。GitHub REST APIは使わず、公開Releaseの
+リダイレクトから最新版を判定するため、API rate limitの影響を受けません。
+更新カードをタップするとダウンロードからOSのインストール確認まで進みます。
 
 ## インストール手順（初回のみ手動）
 
