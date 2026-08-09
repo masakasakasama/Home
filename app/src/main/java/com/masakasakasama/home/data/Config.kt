@@ -39,6 +39,7 @@ data class WebStatus(val primary: String, val label: String, val detail: String)
 object Config {
 
     private const val FILE = "home_config"
+    private const val TILE_USAGE_PREFIX = "tile_usage_"
 
     private fun sp(c: Context) =
         c.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -138,7 +139,7 @@ object Config {
             symbols.map { it.trim() }.filter { it.isNotEmpty() }.joinToString(",")
         ).apply()
 
-    // ---- Tiles (order / hidden / custom) ------------------------------
+    // ---- Tiles (order / hidden / custom / usage) ----------------------
 
     private fun jsonArray(raw: String?): List<String> = runCatching {
         if (raw.isNullOrBlank()) emptyList()
@@ -198,6 +199,29 @@ object Config {
 
     fun setOrder(c: Context, ids: List<String>) =
         sp(c).edit().putString("tiles_order", JSONArray(ids).toString()).apply()
+
+    /** Record one launch from Home. Counts persist across app restarts and updates. */
+    fun recordTileOpen(c: Context, id: String) {
+        val key = TILE_USAGE_PREFIX + id
+        val next = sp(c).getInt(key, 0).coerceAtLeast(0) + 1
+        sp(c).edit().putInt(key, next).apply()
+    }
+
+    fun tileUsageCount(c: Context, id: String): Int =
+        sp(c).getInt(TILE_USAGE_PREFIX + id, 0).coerceAtLeast(0)
+
+    /**
+     * Sort by cumulative launch count while preserving the configured/manual
+     * order as the deterministic tie-breaker. This means a fresh install keeps
+     * the user's current order until actual usage starts differentiating tiles.
+     */
+    fun sortByUsage(c: Context, source: List<Tile>): List<Tile> =
+        source.withIndex()
+            .sortedWith(
+                compareByDescending<IndexedValue<Tile>> { tileUsageCount(c, it.value.id) }
+                    .thenBy { it.index }
+            )
+            .map { it.value }
 
     fun addCustomTile(c: Context, title: String, url: String) {
         val raw = sp(c).getString("custom_tiles", null)
