@@ -223,8 +223,6 @@ class MainActivity : ComponentActivity() {
     private fun toast(msg: String) =
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
 
-    // ---- Dashboard ----------------------------------------------------
-
     @Composable
     private fun Dashboard() {
         val context = LocalContext.current
@@ -314,9 +312,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            if (featured.isNotEmpty()) {
-                SectionLabel("TODAY", "必要な情報だけ")
-            }
+            if (featured.isNotEmpty()) SectionLabel("TODAY", "必要な情報だけ")
             featured.forEach { tile ->
                 val i = tiles.indexOf(tile)
                 val no = "%02d".format(i + 1)
@@ -326,13 +322,13 @@ class MainActivity : ComponentActivity() {
                     TileKind.FITNESS -> FitnessSection(no, tile)
                     else -> Unit
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
             }
             if (launchers.isNotEmpty()) {
                 SectionLabel("APPS", "${launchers.size}件 ・ 利用回数順")
                 LauncherGrid(launchers)
             }
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(32.dp))
         }
     }
 
@@ -378,7 +374,9 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun SectionLabel(title: String, detail: String) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(
+                start = 20.dp, end = 20.dp, top = 14.dp, bottom = 8.dp
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(title, color = HI, fontSize = 12.sp, fontWeight = FontWeight.Bold,
@@ -391,7 +389,7 @@ class MainActivity : ComponentActivity() {
     private fun LauncherGrid(launchers: List<Tile>) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             launchers.chunked(2).forEach { pair ->
                 Row(
@@ -422,19 +420,19 @@ class MainActivity : ComponentActivity() {
         }
         Column(
             modifier = modifier
-                .height(164.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .height(150.dp)
+                .clip(RoundedCornerShape(22.dp))
                 .background(CARD)
-                .border(1.dp, DIVIDER, RoundedCornerShape(24.dp))
+                .border(1.dp, DIVIDER, RoundedCornerShape(22.dp))
                 .clickable { openTile(tile) }
-                .padding(15.dp),
+                .padding(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(13.dp))
                         .background(Color(tile.colorArgb).copy(alpha = 0.22f)),
                     contentAlignment = Alignment.Center,
-                ) { Text(tile.emoji, color = HI, fontSize = 20.sp) }
+                ) { Text(tile.emoji, color = HI, fontSize = 19.sp) }
                 Spacer(Modifier.weight(1f))
                 Text(
                     badge,
@@ -444,15 +442,15 @@ class MainActivity : ComponentActivity() {
                     letterSpacing = 1.sp,
                 )
             }
-            Spacer(Modifier.height(15.dp))
+            Spacer(Modifier.height(11.dp))
             Text(tile.category, color = Color(tile.colorArgb), fontSize = 10.sp,
                 fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Text(
                 tile.title,
                 color = HI,
-                fontSize = 17.sp,
-                lineHeight = 21.sp,
+                fontSize = 16.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -500,36 +498,36 @@ class MainActivity : ComponentActivity() {
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color(tile.colorArgb).copy(alpha = 0.22f))
                     .border(
                         1.dp,
                         Color(tile.colorArgb).copy(alpha = 0.45f),
-                        RoundedCornerShape(16.dp),
+                        RoundedCornerShape(14.dp),
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(tile.emoji, color = HI, fontSize = 22.sp)
+                Text(tile.emoji, color = HI, fontSize = 20.sp)
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(no, color = LABEL, fontSize = 11.sp, letterSpacing = 1.sp)
-                    Spacer(Modifier.width(8.dp))
+                    Text(no, color = LABEL, fontSize = 10.sp, letterSpacing = 1.sp)
+                    Spacer(Modifier.width(7.dp))
                     Text(
                         tile.category,
                         color = Color(tile.colorArgb),
-                        fontSize = 11.sp,
-                        letterSpacing = 1.4.sp,
+                        fontSize = 10.sp,
+                        letterSpacing = 1.3.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
                     tile.title,
                     color = HI,
-                    fontSize = 21.sp,
+                    fontSize = 19.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -537,7 +535,7 @@ class MainActivity : ComponentActivity() {
             }
             status()
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(10.dp))
     }
 
     private fun changeColor(p: Double) = when {
@@ -558,18 +556,16 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(26.dp))
                 .background(CARD)
-                .border(1.dp, DIVIDER, RoundedCornerShape(28.dp))
+                .border(1.dp, DIVIDER, RoundedCornerShape(26.dp))
                 .clickable { onClick() }
-                .padding(horizontal = 16.dp, vertical = 18.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) { content() }
     }
 
     private fun destinationText(tile: Tile): String {
-        if (tile.kind == TileKind.APP) {
-            return tile.pkg ?: "アプリを開く"
-        }
+        if (tile.kind == TileKind.APP) return tile.pkg ?: "アプリを開く"
         val raw = tile.url ?: return "開く"
         val uri = Uri.parse(raw)
         val host = uri.host ?: raw
@@ -586,13 +582,12 @@ class MainActivity : ComponentActivity() {
                         Modifier.size(6.dp).clip(CircleShape)
                             .background(if (quotes.isEmpty()) SUB else UP)
                     )
-                    Spacer(Modifier.width(7.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         if (quotes.isEmpty()) "OFFLINE"
                         else if (!liveOk) "CACHED" else "LIVE",
-                        color = if (quotes.isEmpty()) SUB
-                        else if (!liveOk) SUB else UP,
-                        fontSize = 11.sp, letterSpacing = 2.sp,
+                        color = if (quotes.isEmpty()) SUB else if (!liveOk) SUB else UP,
+                        fontSize = 10.sp, letterSpacing = 1.8.sp,
                     )
                 }
             }
@@ -606,37 +601,37 @@ class MainActivity : ComponentActivity() {
             val head = quotes.first()
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    Text(StockLive.label(head.symbol), color = SUB, fontSize = 13.sp)
-                    Spacer(Modifier.height(6.dp))
+                    Text(StockLive.label(head.symbol), color = SUB, fontSize = 12.sp)
+                    Spacer(Modifier.height(3.dp))
                     Text(
                         StockLive.formatPrice(head.price),
                         color = Color.White,
-                        fontSize = 52.sp,
+                        fontSize = 40.sp,
                         fontWeight = FontWeight.Light,
                     )
                 }
                 Text(
                     changeText(head.changePct),
                     color = changeColor(head.changePct),
-                    fontSize = 15.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                 )
             }
             quotes.drop(1).forEach { q ->
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(8.dp))
                 Hairline()
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        StockLive.label(q.symbol), color = HI, fontSize = 15.sp,
+                        StockLive.label(q.symbol), color = HI, fontSize = 14.sp,
                         modifier = Modifier.weight(1f),
                     )
-                    Text(StockLive.formatPrice(q.price), color = Color.White, fontSize = 17.sp)
-                    Spacer(Modifier.width(18.dp))
+                    Text(StockLive.formatPrice(q.price), color = Color.White, fontSize = 16.sp)
+                    Spacer(Modifier.width(14.dp))
                     Text(
                         changeText(q.changePct),
                         color = changeColor(q.changePct),
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                     )
                 }
             }
@@ -828,8 +823,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    // ---- Settings -----------------------------------------------------
 
     @Composable
     private fun SettingsScreen() {
