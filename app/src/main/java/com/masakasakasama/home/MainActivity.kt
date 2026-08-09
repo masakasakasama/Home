@@ -195,6 +195,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openTile(tile: Tile) {
+        Config.recordTileOpen(this, tile.id)
         when (tile.kind) {
             TileKind.STOCK, TileKind.APP -> {
                 val pkg = tile.pkg
@@ -233,7 +234,7 @@ class MainActivity : ComponentActivity() {
         val featured = tiles.filter {
             it.kind == TileKind.STOCK || it.kind == TileKind.NEWS || it.kind == TileKind.FITNESS
         }
-        val launchers = tiles.filterNot { it in featured }
+        val launchers = Config.sortByUsage(this, tiles.filterNot { it in featured })
 
         Column(
             modifier = Modifier
@@ -328,7 +329,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(Modifier.height(10.dp))
             }
             if (launchers.isNotEmpty()) {
-                SectionLabel("APPS", "${launchers.size}件のランチャー")
+                SectionLabel("APPS", "${launchers.size}件 ・ 利用回数順")
                 LauncherGrid(launchers)
             }
             Spacer(Modifier.height(40.dp))
