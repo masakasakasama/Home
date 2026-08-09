@@ -87,9 +87,8 @@ object Config {
         Tile("aaos", "AAOS Study", "🚗", 0xFF26A69A, "LEARNING", TileKind.APP,
             url = "https://github.com/masakasakasama/AAOS_study/releases/tag/latest",
             pkg = "com.example.aaosstudy"),
-        Tile("sen", "SEN", "¥", 0xFFFF6677, "OPERATOR", TileKind.APP,
-            url = "https://github.com/masakasakasama/sen-android-updates/releases/latest",
-            pkg = "com.masakasakasama.sen"),
+        Tile("sen", "SEN", "¥", 0xFFFF6677, "OPERATOR", TileKind.WEB,
+            url = "https://1000yen-agent-production.up.railway.app/operator"),
     )
 
     const val DEFAULT_NEWS_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"
