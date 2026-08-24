@@ -71,6 +71,8 @@ object Config {
             url = pages("Trip_Plan")),
         Tile("baby_budget", "Baby家計簿", "👶", 0xFFF06292, "BUDGET", TileKind.WEB,
             url = pages("household_budget_management_forbaby")),
+        Tile("mf_dashboard", "MF Dashboard", "📊", 0xFF00BFA5, "DASHBOARD", TileKind.WEB,
+            url = pages("mf-dashboard")),
         Tile("cpre", "CPRE学習", "📚", 0xFF7C4DFF, "CERTIFICATION", TileKind.WEB,
             url = "https://cpre-english-study-masak.masakasakasama.chatgpt.site/"),
         Tile("capm", "CAPM学習", "🎓", 0xFF42A5F5, "CERTIFICATION", TileKind.WEB,
