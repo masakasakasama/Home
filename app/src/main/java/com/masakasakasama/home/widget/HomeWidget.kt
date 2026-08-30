@@ -7,7 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
-import com.masakasakasama.home.MainActivity
+import com.masakasakasama.home.FocusActivity
 import com.masakasakasama.home.R
 import com.masakasakasama.home.focus.PriorityEngine
 import java.text.SimpleDateFormat
@@ -76,7 +76,7 @@ class HomeWidget : AppWidgetProvider() {
             val open = PendingIntent.getActivity(
                 context,
                 0,
-                Intent(context, MainActivity::class.java)
+                Intent(context, FocusActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
