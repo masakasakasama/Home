@@ -5,7 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.setContent
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -64,7 +64,6 @@ private val F_MUTED = Color(0xFF7E8795)
 private val F_SECONDARY = Color(0xFFADB5C1)
 private val F_PRIMARY = Color(0xFFF5F7FA)
 private val F_GREEN = Color(0xFF33D17A)
-private val F_RED = Color(0xFFFF5E66)
 
 class FocusActivity : ComponentActivity() {
 
