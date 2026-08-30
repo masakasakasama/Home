@@ -90,7 +90,7 @@ object Config {
             url = "https://github.com/masakasakasama/AAOS_study/releases/tag/latest",
             pkg = "com.example.aaosstudy"),
         Tile("sen", "SEN", "¥", 0xFFFF6677, "OPERATOR", TileKind.WEB,
-            url = "https://1000yen-agent-production.up.railway.app/operator"),
+            url = "https://140-245-85-166.sslip.io/operator"),
     )
 
     const val DEFAULT_NEWS_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml"
