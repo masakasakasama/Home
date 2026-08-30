@@ -7,7 +7,7 @@
          provider (both apps are signed with the same key). -->
     <uses-permission android:name="com.example.stockwidget.READ_WATCHLIST" />
 
-    <!-- Needed on Android 11+ to launch the installed Stock app and to
+    <!-- Needed on Android 11+ to launch installed companion apps and to
          open https links in a browser. -->
     <queries>
         <package android:name="com.example.stockwidget" />
@@ -32,7 +32,7 @@
         android:theme="@style/Theme.Home">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".FocusActivity"
             android:exported="true"
             android:theme="@style/Theme.Home">
             <intent-filter>
@@ -40,6 +40,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Home" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
