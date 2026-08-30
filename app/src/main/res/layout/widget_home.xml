@@ -5,23 +5,23 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="16dp">
+    android:padding="14dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/widget_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/widget_title"
-            android:textColor="#FFFFFF"
-            android:textSize="13sp"
+            android:text="NOW"
+            android:textColor="#7E8795"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:letterSpacing="0.15" />
+            android:letterSpacing="0.12" />
 
         <TextView
             android:id="@+id/widget_updated"
@@ -29,35 +29,73 @@
             android:layout_height="wrap_content"
             android:text=""
             android:textColor="#6E6E73"
-            android:textSize="11sp" />
+            android:textSize="10sp" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/widget_stock"
+        android:id="@+id/widget_focus_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:maxLines="2"
+        android:layout_marginTop="4dp"
+        android:maxLines="1"
         android:ellipsize="end"
-        android:text="@string/widget_empty"
-        android:textColor="#EDEDED"
-        android:textSize="14sp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="12dp"
-        android:background="#1C1C1E" />
-
-    <TextView
-        android:id="@+id/widget_news"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxLines="3"
-        android:ellipsize="end"
-        android:text="@string/widget_empty"
+        android:text="IELTS · Reading"
         android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:lineSpacingExtra="3dp" />
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_focus_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="40分 · 1 passage + 復習"
+        android:textColor="#C2C7D0"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_progress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="IELTS 0m/8h · 筋トレ 0/3"
+            android:textColor="#8A919D"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/widget_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_action_bg"
+            android:paddingStart="12dp"
+            android:paddingTop="7dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="7dp"
+            android:text="40分完了"
+            android:textColor="#53E391"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_next"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="NEXT  🏋️ 筋トレ"
+        android:textColor="#A6ADB8"
+        android:textSize="10sp" />
 </LinearLayout>
