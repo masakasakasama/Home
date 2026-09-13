@@ -15,6 +15,7 @@
         <package android:name="com.galaxyalarm" />
         <package android:name="com.tatsuya.websearch" />
         <package android:name="com.example.aaosstudy" />
+        <package android:name="com.masakasakasama.reps" />
         <package android:name="com.masakasakasama.sen" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
