@@ -1,0 +1,73 @@
+name: Update design system
+
+on:
+  schedule:
+    - cron: "15 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve revisions
+        id: rev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CURRENT=$(jq -r .revision .design-system.json)
+          LATEST=$(gh api repos/masakasakasama/Design_system/commits/main --jq .sha)
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync Android design-system sources
+        if: steps.rev.outputs.changed == 'true'
+        env:
+          REV: ${{ steps.rev.outputs.latest }}
+        run: |
+          BASE="https://raw.githubusercontent.com/masakasakasama/Design_system/$REV/android/tatsu-design-system/src/main/java/com/masakasakasama/designsystem"
+          mkdir -p app/src/main/java/com/masakasakasama/designsystem/generated
+          curl -fsSL "$BASE/TatsuTheme.kt" -o app/src/main/java/com/masakasakasama/designsystem/TatsuTheme.kt
+          curl -fsSL "$BASE/Components.kt" -o app/src/main/java/com/masakasakasama/designsystem/Components.kt
+          curl -fsSL "$BASE/generated/TatsuTokens.kt" -o app/src/main/java/com/masakasakasama/designsystem/generated/TatsuTokens.kt
+          jq --arg revision "$REV" '.revision = $revision' .design-system.json > .design-system.json.tmp
+          mv .design-system.json.tmp .design-system.json
+
+      - name: Set up JDK 17
+        if: steps.rev.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Verify consumer
+        if: steps.rev.outputs.changed == 'true'
+        run: ./gradlew testDebugUnitTest assembleDebug --no-daemon
+
+      - name: Open update PR
+        if: steps.rev.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REV: ${{ steps.rev.outputs.latest }}
+        run: |
+          SHORT=$(printf "%s" "$REV" | cut -c1-7)
+          BRANCH="chore/design-system-$SHORT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add .design-system.json app/src/main/java/com/masakasakasama/designsystem
+          git commit -m "Update Tatsu Design System to $SHORT"
+          git push origin "$BRANCH"
+          gh pr create             --base main             --head "$BRANCH"             --title "Update Tatsu Design System to $SHORT"             --body "Design_system main の更新を同期しました。build と unit test は通過済みです。UI差分を確認してから merge してください。"

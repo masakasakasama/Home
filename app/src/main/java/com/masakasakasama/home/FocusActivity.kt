@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +43,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import com.masakasakasama.designsystem.TatsuTheme
+import com.masakasakasama.designsystem.generated.TatsuAccent
+import com.masakasakasama.designsystem.generated.TatsuGeneratedColors
 import com.masakasakasama.home.data.AppCatalog
 import com.masakasakasama.home.data.Config
 import com.masakasakasama.home.data.Tile
@@ -57,13 +59,14 @@ import com.masakasakasama.home.github.ReleaseInfo
 import com.masakasakasama.home.widget.HomeWidget
 import kotlinx.coroutines.launch
 
-private val F_BG = Color(0xFF070809)
-private val F_SURFACE = Color(0xFF111316)
-private val F_SURFACE_2 = Color(0xFF181B20)
-private val F_MUTED = Color(0xFF7E8795)
-private val F_SECONDARY = Color(0xFFADB5C1)
-private val F_PRIMARY = Color(0xFFF5F7FA)
-private val F_GREEN = Color(0xFF33D17A)
+private val FOCUS_COLORS = TatsuGeneratedColors.OceanDark
+private val F_BG = FOCUS_COLORS.background
+private val F_SURFACE = FOCUS_COLORS.surface
+private val F_SURFACE_2 = FOCUS_COLORS.surfaceElevated
+private val F_MUTED = FOCUS_COLORS.textMuted
+private val F_SECONDARY = FOCUS_COLORS.textSecondary
+private val F_PRIMARY = FOCUS_COLORS.textPrimary
+private val F_GREEN = FOCUS_COLORS.success
 
 class FocusActivity : ComponentActivity() {
 
@@ -76,7 +79,7 @@ class FocusActivity : ComponentActivity() {
         enableEdgeToEdge()
         reload()
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            TatsuTheme(accent = TatsuAccent.Ocean, darkTheme = true) {
                 FocusHome()
             }
         }

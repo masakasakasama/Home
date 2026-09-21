@@ -1,0 +1,10 @@
+{
+  "repository": "masakasakasama/Design_system",
+  "revision": "a7ccbadea968e2dc69a9de366741dbe3425f2833",
+  "mode": "build-time-snapshot",
+  "androidPaths": [
+    "android/tatsu-design-system/src/main/java/com/masakasakasama/designsystem/TatsuTheme.kt",
+    "android/tatsu-design-system/src/main/java/com/masakasakasama/designsystem/Components.kt",
+    "android/tatsu-design-system/src/main/java/com/masakasakasama/designsystem/generated/TatsuTokens.kt"
+  ]
+}
