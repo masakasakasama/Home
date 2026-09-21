@@ -36,7 +36,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
+import com.masakasakasama.designsystem.TatsuTheme
+import com.masakasakasama.designsystem.generated.TatsuAccent
+import com.masakasakasama.designsystem.generated.TatsuGeneratedColors
 import com.masakasakasama.home.data.AppCatalog
 import com.masakasakasama.home.data.Config
 import com.masakasakasama.home.data.Tile
@@ -74,15 +76,16 @@ import java.time.DayOfWeek
 import java.util.Date
 import java.util.Locale
 
-private val BG = Color(0xFF070809)
-private val SURFACE = Color(0xFF111316)
-private val SURFACE_2 = Color(0xFF181B20)
-private val STROKE = Color(0xFF242831)
-private val MUTED = Color(0xFF7E8795)
-private val SECONDARY = Color(0xFFADB5C1)
-private val PRIMARY = Color(0xFFF5F7FA)
-private val GREEN = Color(0xFF33D17A)
-private val RED = Color(0xFFFF5E66)
+private val HOME_COLORS = TatsuGeneratedColors.OceanDark
+private val BG = HOME_COLORS.background
+private val SURFACE = HOME_COLORS.surface
+private val SURFACE_2 = HOME_COLORS.surfaceElevated
+private val STROKE = HOME_COLORS.border
+private val MUTED = HOME_COLORS.textMuted
+private val SECONDARY = HOME_COLORS.textSecondary
+private val PRIMARY = HOME_COLORS.textPrimary
+private val GREEN = HOME_COLORS.success
+private val RED = HOME_COLORS.error
 
 class MainActivity : ComponentActivity() {
 
@@ -102,7 +105,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         seedFromCache()
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            TatsuTheme(accent = TatsuAccent.Ocean, darkTheme = true) {
                 Box(Modifier.fillMaxSize().background(BG)) {
                     BackHandler(enabled = showSettings) { showSettings = false }
                     if (showSettings) SettingsScreen() else Dashboard()
