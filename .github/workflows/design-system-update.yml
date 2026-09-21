@@ -52,10 +52,6 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        if: steps.rev.outputs.changed == 'true'
-        uses: android-actions/setup-android@v3
-
       - name: Verify consumer
         if: steps.rev.outputs.changed == 'true'
         run: ./gradlew testDebugUnitTest assembleDebug --no-daemon
