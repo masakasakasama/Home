@@ -58,6 +58,8 @@ object Config {
             pkg = "com.masakasakasama.reps"),
         Tile("news", "英語ニュース", "📰", 0xFF1E88E5, "BBC WORLD", TileKind.WEB,
             url = "https://english-news-app-eight.vercel.app"),
+        Tile("daily_check", "Daily News", "🗞️", 0xFF61D8FF, "DAILY", TileKind.WEB,
+            url = "https://raw.githack.com/masakasakasama/Daily_check/main/index.html"),
         Tile("language", "語学学習", "🗣️", 0xFF8E24AA, "LANGUAGE", TileKind.WEB,
             url = pages("Language_learning")),
         Tile("split", "割り勘", "💴", 0xFFF4511E, "SPLIT", TileKind.WEB,
