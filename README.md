@@ -5,16 +5,16 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## できること
 
-全18件のうち株・ニュース・運動を情報カードとして表示し、残りを
-2列のランチャーで表示します。Androidアプリはインストール済みなら直接起動し、
+全20件の自作アプリを、情報カードと2列のランチャーで表示します。Androidアプリはインストール済みなら直接起動し、
 未インストールなら配布ページを開きます。
 
 | アプリ | 種別 | タップ時の挙動 |
 |---|---|---|
 | 株 | Android | `com.example.stockwidget` を直接起動 |
 | タスク管理 | Web | https://masakasakasama.github.io/Task_management/ |
-| フィットネス | Web | https://masakasakasama.github.io/Fitness/ |
+| フィットネス | Android | `com.masakasakasama.reps` を直接起動（未インストール時はFitness Releaseへ） |
 | 英語ニュース | Web | https://english-news-app-eight.vercel.app/ |
+| Daily News | Web | https://raw.githack.com/masakasakasama/Daily_check/main/index.html |
 | 語学学習 | Web | https://masakasakasama.github.io/Language_learning/ |
 | 割り勘 | Web | https://masakasakasama.github.io/warikan/ |
 | 婚姻手続き | Web | https://masakasakasama.github.io/Marriage_procedure/ |
@@ -22,13 +22,14 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 | カレンダー | Web | https://masakasakasama.github.io/Calender/ |
 | 旅行計画 | Web | https://masakasakasama.github.io/Trip_Plan/ |
 | Baby家計簿 | Web | https://masakasakasama.github.io/household_budget_management_forbaby/ |
+| MF Dashboard | Web | https://masakasakasama.github.io/mf-dashboard/ |
 | CPRE学習 | Web | https://cpre-english-study-masak.masakasakasama.chatgpt.site/（本人限定・認証あり） |
 | CAPM学習 | Web | https://capm-baby.masakasakasama.chatgpt.site/ |
 | 天気 | Android | `com.example.weather` を直接起動 |
 | Galaxy 時計 | Android | `com.galaxyalarm` を直接起動 |
 | Web Search | Android | `com.tatsuya.websearch` を直接起動 |
 | AAOS Study | Android | `com.example.aaosstudy` を直接起動 |
-| SEN | Android | `com.masakasakasama.sen` を直接起動 |
+| SEN | Web | https://140-245-85-166.sslip.io/operator |
 
 さらに起動時に `masakasakasama/Home` の最新 Release を確認し、新しければ
 画面上部に更新カードを表示します。GitHub REST APIは使わず、公開Releaseの
@@ -64,7 +65,7 @@ APK を配布し、アプリ内で自動的に更新を確認します。
 
 ## 署名について
 
-`home-release.jks`（パスワードはリポジトリ内固定）を意図的にコミットしています。
+`shared-debug.jks`（パスワードはリポジトリ内固定）を意図的にコミットしています。
 個人のサイドロード用ランチャーで、CI ビルド間で署名を一定に保つことで
 アプリの自己更新（上書きインストール）を成立させるためです。公開配布する
 場合は署名鍵を Secrets に移してください。
