@@ -39,6 +39,12 @@ jobs:
           echo "code=$VC" >> "$GITHUB_OUTPUT"
           echo "name=$VN" >> "$GITHUB_OUTPUT"
 
+      - name: Test release updater
+        env:
+          VERSION_CODE: ${{ steps.ver.outputs.code }}
+          VERSION_NAME: ${{ steps.ver.outputs.name }}
+        run: ./gradlew :app:testReleaseUnitTest --no-daemon
+
       - name: Build release APK
         env:
           VERSION_CODE: ${{ steps.ver.outputs.code }}
