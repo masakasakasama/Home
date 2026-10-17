@@ -357,10 +357,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
-                HeaderAction("AI") {
-                    startActivity(Intent(this@MainActivity, AiQuestionActivity::class.java))
-                }
-                Spacer(Modifier.width(8.dp))
                 HeaderAction(if (refreshing) "···" else "↻", onRefresh)
                 Spacer(Modifier.width(8.dp))
                 HeaderAction("⚙", onSettings)
