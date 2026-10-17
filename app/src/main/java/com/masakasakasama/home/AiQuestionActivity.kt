@@ -135,7 +135,7 @@ class AiQuestionActivity : ComponentActivity() {
                         runCatching {
                             AiGatewaySettings.save(this@AiQuestionActivity, endpoint, newToken)
                             AiGatewaySettings.load(this@AiQuestionActivity)
-                                ?: error("保存した設定を読み込めませんでした")
+                                ?: throw IllegalStateException("保存した設定を読み込めませんでした")
                         }.onSuccess {
                             gateway = it
                             newToken = ""
