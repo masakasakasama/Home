@@ -51,6 +51,7 @@ import com.masakasakasama.home.data.TileKind
 import com.masakasakasama.home.focus.FocusItem
 import com.masakasakasama.home.focus.FocusSnapshot
 import com.masakasakasama.home.focus.PriorityEngine
+import com.masakasakasama.home.personal.PersonalInboxActivity
 import com.masakasakasama.home.github.ApkInstaller
 import com.masakasakasama.home.github.GitHubReleaseClient
 import com.masakasakasama.home.github.ReleaseInfo
@@ -166,6 +167,13 @@ class FocusActivity : ComponentActivity() {
                     }
                 }
                 Spacer(Modifier.height(12.dp))
+            }
+
+            SectionLabel("UPDATES", "自分だけの情報")
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clickable {
+                startActivity(Intent(this@FocusActivity, PersonalInboxActivity::class.java))
+            }.background(F_SURFACE, RoundedCornerShape(16.dp)).padding(18.dp)) {
+                Text("◉  更新情報　　Gmail・Brain", color = F_PRIMARY, fontSize = 16.sp)
             }
 
             SectionLabel("NOW", "いまやる1つ")
