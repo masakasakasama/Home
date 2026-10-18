@@ -68,3 +68,36 @@ jobs:
             アプリ内で自動的に更新を確認します。
           files: out/Home-${{ steps.ver.outputs.name }}.apk
           fail_on_unmatched_files: true
+
+      # Private-source compatible: optionally mirror the signed APK to a separate
+      # PUBLIC downloads-only repository. Never embed repository credentials in APK.
+      # Set the source repo variable HOME_DISTRIBUTION_REPO=masakasakasama/Home-Downloads
+      # and fine-grained source repo secret HOME_DISTRIBUTION_TOKEN (contents:write
+      # restricted to Home-Downloads). Bridge releases use legacy signing.
+      - name: Publish to public APK distribution repo
+        if: ${{ vars.HOME_DISTRIBUTION_REPO != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.HOME_DISTRIBUTION_TOKEN }}
+          TARGET: ${{ vars.HOME_DISTRIBUTION_REPO }}
+          VERSION_CODE: ${{ steps.ver.outputs.code }}
+          VERSION_NAME: ${{ steps.ver.outputs.name }}
+        run: |
+          set -euo pipefail
+          test "$TARGET" = "masakasakasama/Home-Downloads" || {
+            echo "::error::Unexpected distribution repository"; exit 1;
+          }
+          test -n "$GH_TOKEN" || {
+            echo "::error::HOME_DISTRIBUTION_TOKEN is not configured"; exit 1;
+          }
+          visibility=$(gh repo view "$TARGET" --json visibility -q .visibility)
+          test "$visibility" = "PUBLIC" || {
+            echo "::error::Distribution repository must be public"; exit 1;
+          }
+          tag="v$VERSION_CODE"
+          apk="out/Home-$VERSION_NAME.apk"
+          if gh release view "$tag" --repo "$TARGET" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --repo "$TARGET" --clobber
+          else
+            gh release create "$tag" "$apk" --repo "$TARGET" \
+              --title "Home $VERSION_NAME" --notes "Home Android APK (public distribution only; source is private)"
+          fi
