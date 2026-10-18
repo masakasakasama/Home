@@ -7,6 +7,24 @@ import org.junit.Test
 class GitHubReleaseClientTest {
 
     @Test
+    fun acceptsPublicDistributionReleaseWithExpectedOwnerAndFilename() {
+        val release = GitHubReleaseClient.releaseFromRedirect(
+            owner = "masakasakasama",
+            repo = "Home-Downloads",
+            redirectUrl = "https://github.com/masakasakasama/Home-Downloads/releases/tag/v62",
+        )
+        assertEquals(62, release?.versionCode)
+        assertEquals(
+            "https://github.com/masakasakasama/Home-Downloads/releases/download/v62/Home-1.0.62.apk",
+            release?.apkUrl,
+        )
+        assertNull(GitHubReleaseClient.releaseFromRedirect(
+            "masakasakasama", "Home-Downloads",
+            "https://github.com/other/Home-Downloads/releases/tag/v62",
+        ))
+    }
+
+    @Test
     fun buildsReleaseInfoFromLatestRedirect() {
         val release = GitHubReleaseClient.releaseFromRedirect(
             owner = "masakasakasama",
