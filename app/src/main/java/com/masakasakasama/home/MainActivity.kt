@@ -58,6 +58,7 @@ import com.masakasakasama.home.data.Config
 import com.masakasakasama.home.data.Tile
 import com.masakasakasama.home.data.TileKind
 import com.masakasakasama.home.data.WebStatus
+import com.masakasakasama.home.personal.PersonalInboxActivity
 import com.masakasakasama.home.github.ApkInstaller
 import com.masakasakasama.home.github.GitHubReleaseClient
 import com.masakasakasama.home.github.ReleaseInfo
@@ -290,6 +291,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+                .clickable {
+                    startActivity(Intent(this@MainActivity, PersonalInboxActivity::class.java))
+                }.background(SURFACE, RoundedCornerShape(16.dp)).padding(18.dp)) {
+                Text("◉  更新情報　Gmail・Brain", color = PRIMARY)
             }
 
             if (tiles.isEmpty()) {
