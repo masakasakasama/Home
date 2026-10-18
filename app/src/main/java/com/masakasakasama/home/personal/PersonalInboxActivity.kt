@@ -46,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.masakasakasama.home.tiles.NewsLive
+import com.masakasakasama.home.data.Config
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -177,6 +179,7 @@ object BrainInbox {
 class PersonalInboxActivity : ComponentActivity() {
     private var news by mutableStateOf<List<BrainDigest>>(emptyList())
     private var loading by mutableStateOf(false)
+    private var publicNews by mutableStateOf<List<String>>(emptyList())
     private var error by mutableStateOf<String?>(null)
     private var gmailCount by mutableStateOf(0)
     private var gmailLast by mutableStateOf(0L)
@@ -201,6 +204,10 @@ class PersonalInboxActivity : ComponentActivity() {
         return granted.split(":").contains(component)
     }
     private fun refresh() {
+        lifecycleScope.launch {
+            val feed = NewsLive.feed(Config.newsFeed(applicationContext), n = 5)
+            publicNews = feed.items
+        }
         gmailCount = GmailUpdates.count(this)
         gmailLast = GmailUpdates.lastAt(this)
         val token = PersonalToken.load(this)
@@ -245,6 +252,15 @@ class PersonalInboxActivity : ComponentActivity() {
                             } ?: startActivity(Intent(Intent.ACTION_VIEW,
                                 Uri.parse("https://mail.google.com/")))
                         }) { Text("Gmailを開く") }
+                    }
+                }
+            }
+            Surface(shape = RoundedCornerShape(20.dp), color = surface) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("公開ニュース（RSS）", fontWeight = FontWeight.Bold)
+                    if (publicNews.isEmpty()) Text("読み込み中または取得できる記事なし")
+                    publicNews.forEach { headline ->
+                        Text("・" + headline, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
