@@ -193,9 +193,9 @@ class MainActivity : ComponentActivity() {
         if (!force && now - lastUpdateCheckAt < 10 * 60_000L) return
         lastUpdateCheckAt = now
         lifecycleScope.launch {
-            val latest = GitHubReleaseClient.latestRelease(
+            val latest = GitHubReleaseClient.latestAcrossChannels(
                 AppCatalog.SELF_OWNER,
-                AppCatalog.SELF_REPO,
+                AppCatalog.UPDATE_REPOS,
             ) ?: return@launch
             selfUpdate = latest.takeIf { it.versionCode > BuildConfig.VERSION_CODE }
         }

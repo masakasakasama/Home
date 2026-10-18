@@ -39,6 +39,15 @@ object GitHubReleaseClient {
             }.getOrNull()
         }
 
+    /** Query the public distribution channel first. Keep legacy releases as a bridge until
+     * all installed Home versions are updated; choose only the highest valid version.
+     * Never put a GitHub personal access token into the Android app.
+     */
+    suspend fun latestAcrossChannels(owner: String, repos: List<String>): ReleaseInfo? {
+        val releases = repos.distinct().mapNotNull { repo -> latestRelease(owner, repo) }
+        return releases.maxByOrNull { it.versionCode }
+    }
+
     internal fun releaseFromRedirect(
         owner: String,
         repo: String,
