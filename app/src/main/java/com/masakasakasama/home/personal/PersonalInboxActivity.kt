@@ -1,5 +1,6 @@
 package com.masakasakasama.home.personal
 
+import android.app.Notification
 import android.content.Context
 import android.content.Intent
 import android.content.ComponentName
@@ -91,7 +92,7 @@ class GmailUpdateListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn?.packageName != "com.google.android.gm") return
         // Require the user to grant system notification-listener access explicitly.
-        if (sbn.isOngoing || sbn.isGroup) return
+        if (sbn.isOngoing || (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
         GmailUpdates.record(applicationContext, sbn.key)
     }
 }
