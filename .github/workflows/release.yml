@@ -14,6 +14,9 @@ permissions:
 
 jobs:
   build:
+    # Security incident: existing published signing certificate is compromised.
+    # Resume ONLY after replacing the signing key and validating migration.
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

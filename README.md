@@ -1,5 +1,8 @@
 # Home
 
+> Security notice (2026-10-19): the old Android APK signing keystore was accidentally public. Automatic APK releases are paused while the signing certificate is rotated. Do not install APKs from untrusted sources. Existing installations need a backed-up migration and may require reinstall. See the security migration pull requests.
+
+
 自作アプリ群へのランチャー（Android）。Play ストアではなく GitHub Release から
 APK を配布し、アプリ内で自動的に更新を確認します。
 
