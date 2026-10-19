@@ -233,28 +233,10 @@ class PersonalInboxActivity : ComponentActivity() {
             .padding(horizontal = 20.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp)) {
             Text("個人の更新情報", style = MaterialTheme.typography.headlineMedium)
-            Text("共有Tatsu Homeには送信しない。Gmailの本文・件名・差出人は収集しない",
+            Text("共有Homeには送信しない。Gmailの通知権限は無効化済み",
                 color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
-            Surface(shape = RoundedCornerShape(20.dp), color = surface) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    Text("Gmail", fontWeight = FontWeight.Bold)
-                    Text("今日の新着通知 ${gmailCount}件")
-                    Text(if (notificationAccess()) "通知の取得：有効（許可後の通知のみ）" else
-                        "通知の取得：未許可。件数を受け取るには端末で許可が必要",
-                        color = Color.LightGray)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                        }) { Text("通知アクセス設定") }
-                        Button(onClick = {
-                            packageManager.getLaunchIntentForPackage("com.google.android.gm")?.let {
-                                startActivity(it)
-                            } ?: startActivity(Intent(Intent.ACTION_VIEW,
-                                Uri.parse("https://mail.google.com/")))
-                        }) { Text("Gmailを開く") }
-                    }
-                }
-            }
+            Text("Gmail通知アクセスは停止中。ニュース連携のみ利用できます",
+                color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
             Surface(shape = RoundedCornerShape(20.dp), color = surface) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("公開ニュース（RSS）", fontWeight = FontWeight.Bold)
