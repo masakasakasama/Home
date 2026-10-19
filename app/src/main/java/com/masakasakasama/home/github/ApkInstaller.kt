@@ -11,6 +11,7 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import java.io.File
+import java.security.MessageDigest
 
 object ApkInstaller {
 
@@ -36,9 +37,14 @@ object ApkInstaller {
         context: Context,
         apkUrl: String,
         tag: String,
+        expectedSha256: String,
         onInstallerOpened: () -> Unit = {},
         onError: (String) -> Unit,
     ) {
+        if (!expectedSha256.matches(Regex("[a-f0-9]{64}"))) {
+            onError("SHA-256のないAPK更新は拒否します")
+            return
+        }
         val fileName = "Home-update-$tag.apk"
         val target = File(
             context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
@@ -76,6 +82,23 @@ object ApkInstaller {
 
                 if (!target.exists()) {
                     onError("ダウンロードに失敗しました")
+                    return
+                }
+                val actual = runCatching {
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    target.inputStream().use { input ->
+                        val buffer = ByteArray(16384)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count == -1) break
+                            digest.update(buffer, 0, count)
+                        }
+                    }
+                    digest.digest().joinToString("") { "%02x".format(it) }
+                }.getOrNull()
+                if (actual != expectedSha256) {
+                    target.delete()
+                    onError("ダウンロードAPKのSHA-256が一致しません。更新を中止しました")
                     return
                 }
                 if (launchInstaller(context, target, onError)) {

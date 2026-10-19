@@ -159,6 +159,7 @@ class FocusActivity : ComponentActivity() {
                             context = this@FocusActivity,
                             apkUrl = update.apkUrl,
                             tag = "self-${update.tag}",
+                            expectedSha256 = update.apkSha256,
                             onInstallerOpened = { downloading = false },
                         ) { error ->
                             downloading = false

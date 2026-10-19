@@ -280,6 +280,7 @@ class MainActivity : ComponentActivity() {
                             context = context,
                             apkUrl = update.apkUrl,
                             tag = "self-${update.tag}",
+                            expectedSha256 = update.apkSha256,
                             onInstallerOpened = {
                                 updateStatus = null
                                 downloadStarted = false
