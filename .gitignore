@@ -9,3 +9,10 @@
 .externalNativeBuild
 .cxx
 out/
+
+# Signing material / local environments
+*.jks
+*.keystore
+*.p12
+*.pem
+*.env

@@ -280,6 +280,7 @@ class MainActivity : ComponentActivity() {
                             context = context,
                             apkUrl = update.apkUrl,
                             tag = "self-${update.tag}",
+                            expectedSha256 = update.apkSha256,
                             onInstallerOpened = {
                                 updateStatus = null
                                 downloadStarted = false
@@ -883,6 +884,11 @@ class MainActivity : ComponentActivity() {
                     Text("Done", color = BG, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
+
+            Text("バックアップ・復元", color = GREEN, modifier = Modifier.clickable {
+                persistAndClose()
+                startActivity(Intent(this@MainActivity, com.masakasakasama.home.backup.BackupActivity::class.java))
+            }.padding(vertical = 16.dp))
 
             SettingLabel("NEWS FEED")
             Field(feed, { feed = it })

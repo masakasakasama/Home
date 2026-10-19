@@ -11,6 +11,7 @@ data class ReleaseInfo(
     val versionCode: Int,
     val tag: String,
     val apkUrl: String,
+    val apkSha256: String = "",
 )
 
 object GitHubReleaseClient {
@@ -32,7 +33,22 @@ object GitHubReleaseClient {
                 }
                 try {
                     if (conn.responseCode !in 200..399) return@runCatching null
-                    releaseFromRedirect(owner, repo, conn.url.toString())
+                    val release = releaseFromRedirect(owner, repo, conn.url.toString())
+                        ?: return@runCatching null
+                    val checksumConn = (URL(release.apkUrl + ".sha256")
+                        .openConnection() as HttpURLConnection).apply {
+                        connectTimeout = 10000
+                        readTimeout = 10000
+                        instanceFollowRedirects = true
+                        setRequestProperty("User-Agent", "Home-Launcher")
+                    }
+                    val digest = try {
+                        if (checksumConn.responseCode != 200) return@runCatching null
+                        checksumConn.inputStream.bufferedReader().use { it.readLine() ?: "" }
+                            .trim().substringBefore(" ").lowercase()
+                    } finally { checksumConn.disconnect() }
+                    if (!digest.matches(Regex("[a-f0-9]{64}"))) return@runCatching null
+                    release.copy(apkSha256 = digest)
                 } finally {
                     conn.disconnect()
                 }
