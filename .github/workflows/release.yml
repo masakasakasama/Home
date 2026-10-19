@@ -61,7 +61,7 @@ jobs:
              "out/Home-${{ steps.ver.outputs.name }}.apk"
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           tag_name: v${{ steps.ver.outputs.code }}
           name: Home ${{ steps.ver.outputs.name }} (v${{ steps.ver.outputs.code }})
