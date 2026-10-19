@@ -23,3 +23,8 @@ jobs:
         run: ./gradlew :app:testReleaseUnitTest --no-daemon
       - name: Build release APK (no publish)
         run: ./gradlew :app:assembleRelease --no-daemon
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Verify legacy backup converter (no device required)
+        run: node --test scripts/legacy-adb-backup.test.mjs

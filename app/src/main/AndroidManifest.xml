@@ -25,7 +25,7 @@
         </intent>
     </queries>
 
-    <application
+    <application android:name=".backup.BackupApplication"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -34,6 +34,8 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.Home">
+
+        <activity android:name=".backup.BackupActivity" android:exported="false" />
 
         <activity
             android:name=".FocusActivity"

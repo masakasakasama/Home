@@ -16,7 +16,7 @@ jobs:
   build:
     # Security incident: existing published signing certificate is compromised.
     # Resume ONLY after replacing the signing key and validating migration.
-    if: false
+    if: ${{ vars.DATA_MIGRATION_VERIFIED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -67,6 +67,17 @@ jobs:
           trap 'rm -f "$ANDROID_SIGNING_KEYSTORE_PATH"' EXIT
           ./gradlew assembleRelease --no-daemon
 
+      - name: Verify APK signer against independently configured certificate
+        env:
+          EXPECTED_SIGNER: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          test "${#EXPECTED_SIGNER}" -eq 64
+          APK=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK" > signer.txt
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' signer.txt | tr 'A-F' 'a-f')
+          test "$actual" = "$EXPECTED_SIGNER" || { echo "::error::Unexpected APK signer"; exit 1; }
+
       - name: Rename APK
         run: |
           mkdir -p out
@@ -92,7 +103,7 @@ jobs:
       # PUBLIC downloads-only repository. Never embed repository credentials in APK.
       # Set the source repo variable HOME_DISTRIBUTION_REPO=masakasakasama/Home-Downloads
       # and fine-grained source repo secret HOME_DISTRIBUTION_TOKEN (contents:write
-      # restricted to Home-Downloads). Bridge releases use legacy signing.
+      # restricted to Home-Downloads). Never sign bridge releases with the compromised key.
       - name: Publish to public APK distribution repo
         if: ${{ vars.HOME_DISTRIBUTION_REPO != '' }}
         env:

@@ -885,6 +885,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            Text("バックアップ・復元", color = GREEN, modifier = Modifier.clickable {
+                persistAndClose()
+                startActivity(Intent(this@MainActivity, com.masakasakasama.home.backup.BackupActivity::class.java))
+            }.padding(vertical = 16.dp))
+
             SettingLabel("NEWS FEED")
             Field(feed, { feed = it })
 

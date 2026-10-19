@@ -1,17 +1,17 @@
 package com.masakasakasama.home.personal
 
-import android.app.Notification
 import android.content.Context
 import android.content.Intent
-import android.content.ComponentName
 import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.service.notification.NotificationListenerService
-import android.service.notification.StatusBarNotification
 import android.util.Base64
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.common.api.Scope
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
@@ -87,15 +87,6 @@ object GmailUpdates {
         val next = (if (p.getString("day", "") == day) p.getInt("count", 0) else 0) + 1
         p.edit().putString("day", day).putInt("count", next)
             .putLong("last", System.currentTimeMillis()).putStringSet("seen", seen).apply()
-    }
-}
-
-class GmailUpdateListener : NotificationListenerService() {
-    override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        if (sbn?.packageName != "com.google.android.gm") return
-        // Require the user to grant system notification-listener access explicitly.
-        if (sbn.isOngoing || (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
-        GmailUpdates.record(applicationContext, sbn.key)
     }
 }
 
@@ -195,21 +186,54 @@ class PersonalInboxActivity : ComponentActivity() {
     }
     override fun onResume() {
         super.onResume()
-        gmailCount = GmailUpdates.count(this)
-        gmailLast = GmailUpdates.lastAt(this)
+        gmailCount = getSharedPreferences("personal_gmail_update_counts", MODE_PRIVATE).getInt("unread_count", 0)
+        gmailLast = getSharedPreferences("personal_gmail_update_counts", MODE_PRIVATE).getLong("unread_last", 0)
     }
-    private fun notificationAccess(): Boolean {
-        val granted = Settings.Secure.getString(contentResolver, "enabled_notification_listeners").orEmpty()
-        val component = ComponentName(this, GmailUpdateListener::class.java).flattenToString()
-        return granted.split(":").contains(component)
+    private val gmailAuthorization = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            runCatching { Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(result.data).accessToken }
+                .onSuccess { token -> if (token != null) fetchGmailCount(token) }
+                .onFailure { error = "Gmail認可に失敗しました。端末の保存データは保持しています。" }
+        }
+    }
+    private fun authorizeGmail() {
+        val request = AuthorizationRequest.builder()
+            .setRequestedScopes(listOf(Scope("https://www.googleapis.com/auth/gmail.metadata"))).build()
+        Identity.getAuthorizationClient(this).authorize(request)
+            .addOnSuccessListener { result ->
+                if (result.hasResolution()) {
+                    result.pendingIntent?.let { gmailAuthorization.launch(IntentSenderRequest.Builder(it.intentSender).build()) }
+                } else result.accessToken?.let { fetchGmailCount(it) }
+            }
+            .addOnFailureListener { error = "Gmailの接続設定・認可を確認してください。既存データは保持しています。" }
+    }
+    private fun fetchGmailCount(accessToken: String) {
+        // Token is used only in memory. Never send Gmail data to the Home backend.
+        lifecycleScope.launch {
+            runCatching { withContext(Dispatchers.IO) {
+                val connection = (URL("https://gmail.googleapis.com/gmail/v1/users/me/labels/UNREAD?fields=messagesUnread").openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = false; connectTimeout = 12000; readTimeout = 12000
+                    setRequestProperty("Authorization", "Bearer $accessToken")
+                }
+                try {
+                    check(connection.responseCode == 200)
+                    JSONObject(connection.inputStream.bufferedReader().use { it.readText() }).getInt("messagesUnread")
+                } finally { connection.disconnect() }
+            } }.onSuccess { count ->
+                gmailCount = count; gmailLast = System.currentTimeMillis()
+                getSharedPreferences("personal_gmail_update_counts", MODE_PRIVATE).edit()
+                    .putInt("unread_count", count).putLong("unread_last", gmailLast).apply()
+                error = null
+            }.onFailure { error = "Gmail取得失敗。オフラインの保存件数を保持しています。再認可して再試行できます。" }
+        }
     }
     private fun refresh() {
         lifecycleScope.launch {
             val feed = NewsLive.feed(Config.newsFeed(applicationContext), n = 5)
             publicNews = feed.items
         }
-        gmailCount = GmailUpdates.count(this)
-        gmailLast = GmailUpdates.lastAt(this)
+        gmailCount = getSharedPreferences("personal_gmail_update_counts", MODE_PRIVATE).getInt("unread_count", 0)
+        gmailLast = getSharedPreferences("personal_gmail_update_counts", MODE_PRIVATE).getLong("unread_last", 0)
         val token = PersonalToken.load(this)
         tokenSaved = token.isNotBlank()
         if (token.isBlank()) return
@@ -235,8 +259,9 @@ class PersonalInboxActivity : ComponentActivity() {
             Text("個人の更新情報", style = MaterialTheme.typography.headlineMedium)
             Text("共有Homeには送信しない。Gmailの通知権限は無効化済み",
                 color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
-            Text("Gmail通知アクセスは停止中。ニュース連携のみ利用できます",
-                color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+            Text("Gmail 未読: $gmailCount 件（最終取得: ${if (gmailLast == 0L) "未取得" else java.util.Date(gmailLast).toString()}）")
+            Text("Google OAuthの読み取り専用メタデータ権限で未読件数を取得します。本文・送信者・件名は取得しません。")
+            Button(onClick = { authorizeGmail() }) { Text("個人用Gmailに接続・更新") }
             Surface(shape = RoundedCornerShape(20.dp), color = surface) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("公開ニュース（RSS）", fontWeight = FontWeight.Bold)

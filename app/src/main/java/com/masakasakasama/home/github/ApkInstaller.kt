@@ -101,6 +101,8 @@ object ApkInstaller {
                     onError("ダウンロードAPKのSHA-256が一致しません。更新を中止しました")
                     return
                 }
+                try { ApkTrust.verify(context, target) }
+                catch (e: Exception) { target.delete(); onError(e.message ?: "APK署名検証失敗"); return }
                 if (launchInstaller(context, target, onError)) {
                     onInstallerOpened()
                 }
