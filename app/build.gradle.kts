@@ -20,18 +20,21 @@ android {
         versionName = System.getenv("VERSION_NAME") ?: "1.0.$ciVersionCode"
     }
 
+    // Private signing material is injected at build time; never stored in Git.
+    val signingPath = System.getenv("ANDROID_SIGNING_KEYSTORE_PATH")
+    val signingStorePassword = System.getenv("ANDROID_SIGNING_STORE_PASSWORD")
+    val signingKeyAlias = System.getenv("ANDROID_SIGNING_KEY_ALIAS")
+    val signingKeyPassword = System.getenv("ANDROID_SIGNING_KEY_PASSWORD")
+    val hasSigning = listOf(signingPath, signingStorePassword, signingKeyAlias, signingKeyPassword)
+        .all { !it.isNullOrBlank() }
     signingConfigs {
         create("release") {
-            // Signed with the Stock widget's keystore (same cert) so the
-            // signature-protected READ_WATCHLIST permission is granted and
-            // Home can read its watchlist provider. Committed on purpose:
-            // personal side-loaded app needing a stable signature.
-            storeFile = file("../shared-debug.jks")
-            storePassword = "stockwidget"
-            keyAlias = "stockwidget"
-            keyPassword = "stockwidget"
-            // Enable every signature scheme so even picky side-load
-            // installers (some Xiaomi/MIUI ones) accept the APK.
+            if (hasSigning) {
+                storeFile = file(signingPath!!)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true
@@ -42,14 +45,14 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasSigning) signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            // Standard Android debug signing only.
         }
     }
 

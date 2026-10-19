@@ -45,17 +45,31 @@ jobs:
           VERSION_NAME: ${{ steps.ver.outputs.name }}
         run: ./gradlew :app:testReleaseUnitTest --no-daemon
 
-      - name: Build release APK
+      - name: Build release APK with private signing key
         env:
           VERSION_CODE: ${{ steps.ver.outputs.code }}
           VERSION_NAME: ${{ steps.ver.outputs.name }}
-        run: ./gradlew assembleRelease --no-daemon
+          SIGNING_KEYSTORE_B64: ${{ secrets.HOME_SIGNING_KEYSTORE_B64 }}
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.HOME_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.HOME_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.HOME_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for value in "$SIGNING_KEYSTORE_B64" "$ANDROID_SIGNING_STORE_PASSWORD" "$ANDROID_SIGNING_KEY_ALIAS" "$ANDROID_SIGNING_KEY_PASSWORD"; do
+            test -n "$value" || { echo "::error::Missing private signing secret; refusing to publish an APK"; exit 1; }
+          done
+          export ANDROID_SIGNING_KEYSTORE_PATH="$RUNNER_TEMP/home-private-signing.jks"
+          printf '%s' "$SIGNING_KEYSTORE_B64" | base64 --decode > "$ANDROID_SIGNING_KEYSTORE_PATH"
+          chmod 600 "$ANDROID_SIGNING_KEYSTORE_PATH"
+          trap 'rm -f "$ANDROID_SIGNING_KEYSTORE_PATH"' EXIT
+          ./gradlew assembleRelease --no-daemon
 
       - name: Rename APK
         run: |
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk \
              "out/Home-${{ steps.ver.outputs.name }}.apk"
+          (cd out && sha256sum "Home-${{ steps.ver.outputs.name }}.apk" > "Home-${{ steps.ver.outputs.name }}.apk.sha256")
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -66,7 +80,9 @@ jobs:
             自動ビルドされた Home ランチャーの APK です。
             端末にこの APK をインストールしてください。以降は
             アプリ内で自動的に更新を確認します。
-          files: out/Home-${{ steps.ver.outputs.name }}.apk
+          files: |
+            out/Home-${{ steps.ver.outputs.name }}.apk
+            out/Home-${{ steps.ver.outputs.name }}.apk.sha256
           fail_on_unmatched_files: true
 
       # Private-source compatible: optionally mirror the signed APK to a separate
@@ -96,8 +112,8 @@ jobs:
           tag="v$VERSION_CODE"
           apk="out/Home-$VERSION_NAME.apk"
           if gh release view "$tag" --repo "$TARGET" >/dev/null 2>&1; then
-            gh release upload "$tag" "$apk" --repo "$TARGET" --clobber
+            gh release upload "$tag" "$apk" "$apk.sha256" --repo "$TARGET" --clobber
           else
-            gh release create "$tag" "$apk" --repo "$TARGET" \
+            gh release create "$tag" "$apk" "$apk.sha256" --repo "$TARGET" \
               --title "Home $VERSION_NAME" --notes "Home Android APK (public distribution only; source is private)"
           fi
